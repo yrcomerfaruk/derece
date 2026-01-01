@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
+import icon from '../icon.svg';
 
 interface Message {
     id: string;
@@ -46,6 +48,7 @@ export default function ChatPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const inputContainerRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,6 +57,43 @@ export default function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isLoading]);
+
+    // iOS Keyboard Fix - Prevent input from being hidden behind keyboard
+    useEffect(() => {
+        const handleResize = () => {
+            // iOS Safari için viewport yüksekliği değiştiğinde scroll yap
+            if (textareaRef.current === document.activeElement) {
+                setTimeout(() => {
+                    textareaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+            }
+        };
+
+        const handleFocus = () => {
+            // Input focus olduğunda scroll yap
+            setTimeout(() => {
+                if (inputContainerRef.current) {
+                    inputContainerRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+            }, 300);
+        };
+
+        const textarea = textareaRef.current;
+        if (textarea) {
+            textarea.addEventListener('focus', handleFocus);
+        }
+
+        window.addEventListener('resize', handleResize);
+        window.visualViewport?.addEventListener('resize', handleResize);
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            window.visualViewport?.removeEventListener('resize', handleResize);
+            if (textarea) {
+                textarea.removeEventListener('focus', handleFocus);
+            }
+        };
+    }, []);
 
     // 0. Redirect if accessed directly via /chat
     const router = useRouter();
@@ -203,17 +243,27 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-16">
+            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: '120px' }}>
                 {messages.length === 0 && isOnboarded ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
-                        <div className="space-y-2">
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative">
+                        {/* Background Icon */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                            <Image
+                                src={icon}
+                                alt=""
+                                className="w-96 h-96 opacity-[0.03]"
+                                priority
+                            />
+                        </div>
+
+                        <div className="space-y-2 relative z-10">
                             <h2 className="text-2xl font-bold text-black">
                                 Merhaba, Koçun Burada!
                             </h2>
                             <p className="text-gray-500 text-sm font-medium">Sana nasıl yardımcı olabilirim?</p>
                         </div>
 
-                        <div className="w-full max-w-4xl space-y-3 overflow-hidden">
+                        <div className="w-full max-w-4xl space-y-3 overflow-hidden relative z-10">
                             {/* Suggested Questions */}
                             <div className="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
                                 {SUGGESTED_QUESTIONS.slice(0, Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
@@ -254,8 +304,12 @@ export default function ChatPage() {
                                 >
                                     {msg.role === 'assistant' && (
                                         <div className="flex items-center gap-2 mb-1">
-                                            <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center text-white text-[9px] font-bold">
-                                                AI
+                                            <div className="w-5 h-5 flex items-center justify-center">
+                                                <Image
+                                                    src={icon}
+                                                    alt="AI"
+                                                    className="w-full h-full"
+                                                />
                                             </div>
                                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
                                         </div>
@@ -269,13 +323,17 @@ export default function ChatPage() {
                         {isLoading && (
                             <div className="flex justify-start">
                                 <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 rounded-full bg-black flex items-center justify-center text-white text-[10px] font-bold">
-                                        AI
+                                    <div className="w-6 h-6 flex items-center justify-center">
+                                        <Image
+                                            src={icon}
+                                            alt="AI"
+                                            className="w-full h-full animate-pulse"
+                                        />
                                     </div>
                                     <div className="flex gap-1 bg-gray-50 px-3 py-2 rounded-2xl rounded-tl-sm border border-gray-100">
-                                        <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                        <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                        <span className="w-1.5 h-1.5 bg-black rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1s' }} />
+                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1s' }} />
                                     </div>
                                 </div>
                             </div>
@@ -286,7 +344,15 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area - Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-2 px-4 border-t border-gray-50 z-30" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
+            <div
+                ref={inputContainerRef}
+                className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-2 px-4 border-t border-gray-50 z-30"
+                style={{
+                    paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))',
+                    paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+                    paddingRight: 'max(1rem, env(safe-area-inset-right))'
+                }}
+            >
                 <div className="max-w-3xl mx-auto relative">
                     {/* Suggestions Popover */}
                     <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showSuggestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '300px' }}>
@@ -322,8 +388,13 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
-                            style={{ minHeight: '24px', scrollbarWidth: 'none', lineHeight: '24px' }}
+                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
+                            style={{
+                                minHeight: '24px',
+                                scrollbarWidth: 'none',
+                                lineHeight: '24px',
+                                fontSize: '16px' // iOS zoom'u önlemek için 16px
+                            }}
                             rows={1}
                         />
                         <button
