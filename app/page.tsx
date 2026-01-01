@@ -17,7 +17,7 @@ export default function Home() {
           <Image
             src={logo}
             alt="Derece AI Logo"
-            className="h-4 w-auto"
+            className="h-3.5 w-auto"
             priority
           />
         </div>

@@ -203,7 +203,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
+            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-16">
                 {messages.length === 0 && isOnboarded ? (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
                         <div className="space-y-2">
@@ -240,7 +240,7 @@ export default function ChatPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-6 max-w-3xl mx-auto">
+                    <div className="space-y-4 max-w-3xl mx-auto">
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
@@ -286,7 +286,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area - Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] px-4 border-t border-gray-50 z-30">
+            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-2 px-4 border-t border-gray-50 z-30" style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}>
                 <div className="max-w-3xl mx-auto relative">
                     {/* Suggestions Popover */}
                     <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showSuggestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '300px' }}>
