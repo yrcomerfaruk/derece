@@ -11,8 +11,11 @@ export default function Home() {
     <div className="flex flex-col h-screen bg-white">
       {/* Centered Header with Toggle */}
       <div className="flex items-center justify-between px-6 py-2 md:px-8 md:py-2 sticky top-0 bg-white z-20">
-        <div className="text-xl font-black tracking-tight text-black">
-          DERECE <span className="text-gray-500">AI</span>
+        <div className="flex items-center text-xl font-black tracking-tighter text-black antialiased">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mr-2">
+            <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="black" />
+          </svg>
+          DERECE <span className="text-gray-500 ml-0.5">AI</span>
         </div>
         <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
           <button

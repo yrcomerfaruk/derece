@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Topic {
     id: string;
@@ -21,6 +22,15 @@ export default function ProgramPage() {
     const [weekOffset, setWeekOffset] = useState(0); // 0 = Current, -1 = Previous, 1 = Next
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
     const [showToast, setShowToast] = useState(false);
+
+    const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (pathname === '/program') {
+            router.replace('/');
+        }
+    }, [pathname, router]);
 
     const weekDayOrder = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 

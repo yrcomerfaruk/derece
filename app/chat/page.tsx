@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface Message {
     id: string;
@@ -53,6 +54,16 @@ export default function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isLoading]);
+
+    // 0. Redirect if accessed directly via /chat
+    const router = useRouter();
+    const pathname = usePathname();
+
+    useEffect(() => {
+        if (pathname === '/chat') {
+            router.replace('/');
+        }
+    }, [pathname, router]);
 
     // 1. Initialize User & Check Onboarding
     useEffect(() => {
@@ -209,7 +220,7 @@ export default function ChatPage() {
                                     <button
                                         key={i}
                                         onClick={() => handleSend(q)}
-                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50"
+                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
                                     >
                                         {q}
                                     </button>
@@ -220,7 +231,7 @@ export default function ChatPage() {
                                     <button
                                         key={i}
                                         onClick={() => handleSend(q)}
-                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50"
+                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
                                     >
                                         {q}
                                     </button>
@@ -275,7 +286,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area - Fixed Bottom */}
-            <div className="absolute bottom-0 left-0 right-0 bg-white pt-2 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] px-4 border-t border-gray-50">
+            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] px-4 border-t border-gray-50 z-30">
                 <div className="max-w-3xl mx-auto relative">
                     {/* Suggestions Popover */}
                     <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showSuggestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '300px' }}>
@@ -311,7 +322,7 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-1 px-3 text-xs text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
+                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-1 px-3 text-base md:text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
                             style={{ minHeight: '30px', scrollbarWidth: 'none', lineHeight: '22px' }}
                             rows={1}
                         />
