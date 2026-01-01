@@ -243,18 +243,18 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: '120px' }}>
+            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 relative" style={{ paddingBottom: '120px' }}>
+                {/* Background Icon - Always visible */}
+                <div className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0">
+                    <Image
+                        src={icon}
+                        alt=""
+                        className="w-96 h-96 opacity-[0.03]"
+                        priority
+                    />
+                </div>
                 {messages.length === 0 && isOnboarded ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative">
-                        {/* Background Icon */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                            <Image
-                                src={icon}
-                                alt=""
-                                className="w-96 h-96 opacity-[0.03]"
-                                priority
-                            />
-                        </div>
+                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
 
                         <div className="space-y-2 relative z-10">
                             <h2 className="text-2xl font-bold text-black">
@@ -290,7 +290,7 @@ export default function ChatPage() {
                         </div>
                     </div>
                 ) : (
-                    <div className="space-y-4 max-w-3xl mx-auto">
+                    <div className="space-y-4 max-w-3xl mx-auto relative z-10">
                         {messages.map((msg) => (
                             <div
                                 key={msg.id}
@@ -388,7 +388,7 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
+                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13"
                             style={{
                                 minHeight: '24px',
                                 scrollbarWidth: 'none',

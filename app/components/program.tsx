@@ -185,9 +185,9 @@ export default function ProgramPage() {
                         </div>
 
                         <div className="flex flex-col items-center">
-                            <span className="font-bold text-gray-900 text-lg tracking-tight">{daySchedule.day}</span>
+                            <span className="font-bold text-gray-900 tracking-tight" style={{ fontSize: '14px' }}>{daySchedule.day}</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs font-medium text-gray-400">{daySchedule.date}</span>
+                                <span className="font-medium text-gray-400" style={{ fontSize: '9px' }}>{daySchedule.date}</span>
                                 {weekOffset < 0 && <span className="text-[9px] px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">Geçmiş</span>}
                             </div>
                         </div>

@@ -12,8 +12,9 @@ export default function Home() {
       {/* Centered Header with Toggle */}
       <div className="flex items-center justify-between px-3 py-2 md:px-20 md:py-3 sticky top-0 bg-white z-20">
         <div className="flex items-center">
-          <span className="text-black font-bold tracking-tight" style={{ fontFamily: 'var(--font-geist-sans)', fontSize: '20px' }}>
-            DERECE AI
+          <span className="tracking-tight" style={{ fontFamily: 'var(--font-geist-sans)', fontSize: '20px' }}>
+            <span className="text-black font-extrabold">DERECE</span>
+            <span className="text-gray-400 font-extrabold"> AI</span>
           </span>
         </div>
         <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
