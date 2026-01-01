@@ -203,7 +203,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-16">
+            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))]">
                 {messages.length === 0 && isOnboarded ? (
                     <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in">
                         <div className="space-y-2">
@@ -307,12 +307,12 @@ export default function ChatPage() {
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-full flex items-center p-2 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
+                    <div className="bg-gray-50 border border-gray-200 rounded-full flex items-center p-1 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
                         <button
                             onClick={() => setShowSuggestions(!showSuggestions)}
                             className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showSuggestions ? 'bg-gray-200 text-gray-600' : ''}`}
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
@@ -322,7 +322,7 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0.5 px-2 text-base md:text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
+                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
                             style={{ minHeight: '24px', scrollbarWidth: 'none', lineHeight: '24px' }}
                             rows={1}
                         />
@@ -334,7 +334,7 @@ export default function ChatPage() {
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>

@@ -22,6 +22,7 @@ export default function ProgramPage() {
     const [weekOffset, setWeekOffset] = useState(0); // 0 = Current, -1 = Previous, 1 = Next
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
     const [showToast, setShowToast] = useState(false);
+    const [toastMessage, setToastMessage] = useState('');
 
     const router = useRouter();
     const pathname = usePathname();
@@ -118,9 +119,18 @@ export default function ProgramPage() {
         const day = schedule[dayIndex];
         const today = new Date().toISOString().slice(0, 10);
 
-        // Simple string comparison for 'YYYY-MM-DD' works perfectly
+        // Prevent modifying past days
+        if (day.date < today) {
+            setShowToast(true);
+            setToastMessage("Geçmiş programları işaretleyemezsiniz.");
+            setTimeout(() => setShowToast(false), 3000);
+            return;
+        }
+
+        // Prevent modifying future days (optional, keeping existing logic if desired, but user focused on past)
         if (day.date > today) {
             setShowToast(true);
+            setToastMessage("Henüz günü gelmeyen programı işaretleyemezsin.");
             setTimeout(() => setShowToast(false), 3000);
             return;
         }
@@ -147,7 +157,7 @@ export default function ProgramPage() {
             <div className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${showToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <div className="bg-zinc-800 text-white px-4 py-2.5 rounded-full text-xs font-medium shadow-lg flex items-center gap-2">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                    Henüz günü gelmeyen programı işaretleyemezsin.
+                    {toastMessage}
                 </div>
             </div>
 
@@ -178,7 +188,7 @@ export default function ProgramPage() {
                             <span className="font-bold text-gray-900 text-lg tracking-tight">{daySchedule.day}</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-medium text-gray-400">{daySchedule.date}</span>
-                                {weekOffset < 0 && <span className="text-[10px] px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">Geçmiş</span>}
+                                {weekOffset < 0 && <span className="text-[9px] px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">Geçmiş</span>}
                             </div>
                         </div>
 
