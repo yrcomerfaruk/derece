@@ -156,7 +156,7 @@ export default function ProgramPage() {
 
                 {/* Day Header */}
                 <div className="shrink-0 bg-white z-10">
-                    <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-4">
+                    <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-2">
                         <div className="flex items-center gap-1">
                             <button
                                 onClick={prevWeek}

@@ -286,7 +286,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area - Fixed Bottom */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] px-4 border-t border-gray-50 z-30">
+            <div className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] px-4 border-t border-gray-50 z-30">
                 <div className="max-w-3xl mx-auto relative">
                     {/* Suggestions Popover */}
                     <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showSuggestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '300px' }}>
@@ -307,10 +307,10 @@ export default function ChatPage() {
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-[2rem] flex items-center p-0.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200">
+                    <div className="bg-gray-50 border border-gray-200 rounded-full flex items-center p-2 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
                         <button
                             onClick={() => setShowSuggestions(!showSuggestions)}
-                            className={`p-1.5 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showSuggestions ? 'bg-gray-200 text-gray-600' : ''}`}
+                            className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showSuggestions ? 'bg-gray-200 text-gray-600' : ''}`}
                         >
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -322,19 +322,19 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-1 px-3 text-base md:text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
-                            style={{ minHeight: '30px', scrollbarWidth: 'none', lineHeight: '22px' }}
+                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0.5 px-2 text-base md:text-sm text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center"
+                            style={{ minHeight: '24px', scrollbarWidth: 'none', lineHeight: '24px' }}
                             rows={1}
                         />
                         <button
                             onClick={() => handleSend()}
                             disabled={!input.trim() || isLoading}
-                            className={`p-1.5 rounded-full transition-all m-0.5 shrink-0 ${input.trim() && !isLoading
+                            className={`p-1 rounded-full transition-all m-0.5 shrink-0 ${input.trim() && !isLoading
                                 ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-105'
                                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>
                         </button>
