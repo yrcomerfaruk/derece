@@ -34,12 +34,17 @@ body {
 }
 
 /* iOS Gradient Fix */
+/* iOS Gradient Fix */
 .text-gradient-fix {
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-color: transparent;
-  /* Fallback */
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  color: transparent !important;
+  background-color: transparent !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  display: inline-block;
+  /* Often needed for gradients on spans */
 }
 
 /* iOS Specific Fixes */
