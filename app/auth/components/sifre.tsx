@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { authHelpers } from '@/lib/supabase';
 
 // Input Component
@@ -106,12 +107,9 @@ export default function SifrePage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-extrabold tracking-tight">
-                        <span className="text-black">DERECE</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400"> AI</span>
-                    </h1>
-                    <p className="text-sm text-black mt-2">Şifrenizi sıfırlayın</p>
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
+                    <p className="text-sm text-black mt-4">Şifrenizi sıfırlayın</p>
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">

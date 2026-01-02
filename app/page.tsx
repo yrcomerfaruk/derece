@@ -11,10 +11,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <span className="text-2xl font-extrabold tracking-tight">
-                <span className="text-black">DERECE</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400 text-gradient-fix"> AI</span>
-              </span>
+              <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
             </div>
             <div className="flex items-center gap-4">
               <Link href="/auth?tab=giris">
@@ -40,7 +37,7 @@ export default function LandingPage() {
 
               <h1 className="text-5xl md:text-7xl font-extrabold text-black tracking-tight mb-8 leading-[1.1]">
                 Hayallerindeki Üniversiteye <br className="hidden lg:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-gray-500 to-black text-gradient-fix">Adım Adım</span> Ulaş.
+                <Image src="/adim-adim.svg" alt="Adım Adım" width={300} height={70} className="inline-block h-[1.3em] w-auto -mt-4 align-middle" /> Ulaş.
               </h1>
 
               <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -56,13 +53,12 @@ export default function LandingPage() {
                     </svg>
                   </button>
                 </Link>
-                <Link href="#nasil-calisir" scroll={true}>
+                <Link href="#features" scroll={true}>
                   <button className="text-sm font-bold px-8 py-4 bg-gray-50 text-black rounded-full hover:bg-gray-100 transition-colors">
                     Nasıl Çalışır?
                   </button>
                 </Link>
               </div>
-
 
               <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-gray-500">
                 <div className="flex items-center gap-2">
@@ -82,7 +78,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
 
       {/* Background Icon */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden flex items-center justify-center opacity-[0.03]">
@@ -105,72 +100,26 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-              <div className="w-32 h-32 relative mb-6">
-                <Image src="/images/rocket-3d.png" alt="Kişisel Program" fill className="object-contain" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-3">Kişisel Ders Programı</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Hedeflerine, boş vakitlerine ve seviyene göre yapay zeka tarafından özel olarak hazırlanan dinamik program.
-              </p>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-              <div className="w-32 h-32 relative mb-6">
-                <Image src="/images/target-3d.png" alt="Hedef Odaklı" fill className="object-contain" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-3">Hedef Odaklı İlerleme</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Konu eksiklerini tespit eder, sana en uygun çalışma stratejisini belirler ve sürekli rotanı günceller.
-              </p>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col items-center text-center">
-              <div className="w-32 h-32 relative mb-6">
-                <Image src="/images/chat-3d.png" alt="7/24 Koç" fill className="object-contain" />
-              </div>
-              <h3 className="text-xl font-bold text-black mb-3">7/24 Koç Desteği</h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Rehberlik, motivasyon veya strateji... Aklına takılan her soruyu AI koçuna sor, anında cevap al.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Nasıl Çalışır Section */}
-      <section id="nasil-calisir" className="py-24 bg-white relative z-10 scroll-mt-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-black mb-2">Nasıl Çalışır?</h2>
-            <p className="text-gray-500">3 adımda başarı yolculuğuna başla.</p>
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-12 relative">
+          <div className="flex flex-col md:flex-row gap-8 relative">
             {/* Connecting Line (Desktop) */}
             <div className="hidden md:block absolute top-6 left-[20%] right-[20%] h-0.5 bg-gray-100 -z-10"></div>
 
             {/* Step 1 */}
-            <div className="flex-1 text-center max-w-xs">
+            <div className="flex-1 text-center max-w-xs mx-auto">
               <div className="w-12 h-12 bg-white border-2 border-black text-black rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4 z-10 relative">1</div>
               <h3 className="text-lg text-black font-bold mb-2">Kayıt Ol</h3>
               <p className="text-gray-600 text-xs leading-relaxed">Hızlıca hesabını oluştur ve hedeflerini belirle.</p>
             </div>
 
-
             {/* Step 2 */}
-            <div className="flex-1 text-center max-w-xs">
+            <div className="flex-1 text-center max-w-xs mx-auto">
               <div className="w-12 h-12 bg-white border-2 border-black text-black rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4 z-10 relative">2</div>
               <h3 className="text-lg text-black font-bold mb-2">Programını Al</h3>
               <p className="text-gray-600 text-xs leading-relaxed">Yapay zeka sana özel programını hazırlasın.</p>
             </div>
 
             {/* Step 3 */}
-            <div className="flex-1 text-center max-w-xs">
+            <div className="flex-1 text-center max-w-xs mx-auto">
               <div className="w-12 h-12 bg-white border-2 border-black text-black rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4 z-10 relative">3</div>
               <h3 className="text-lg text-black font-bold mb-2">Başla</h3>
               <p className="text-gray-600 text-xs leading-relaxed">Programına uy ve hedefine adım adım ulaş.</p>
@@ -235,17 +184,13 @@ export default function LandingPage() {
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center">
-            <span className="text-xl font-extrabold tracking-tight">
-              <span className="text-black">DERECE</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400 text-gradient-fix"> AI</span>
-            </span>
+            <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
           </div>
           <p className="text-gray-500 text-sm">
             © 2026 Derece AI. Tüm hakları saklıdır.
           </p>
         </div>
       </footer>
-
     </div>
   );
 }

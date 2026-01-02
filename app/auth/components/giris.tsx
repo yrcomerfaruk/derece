@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { authHelpers } from '@/lib/supabase';
 
 // Input Component
@@ -66,13 +67,7 @@ export default function GirisPage() {
             const { error } = await authHelpers.signIn(email, password);
 
             if (error) {
-                if (error.message.includes('Invalid login credentials')) {
-                    setError('Email veya şifre hatalı');
-                } else if (error.message.includes('Email not confirmed')) {
-                    setError('Lütfen email adresinizi doğrulayın');
-                } else {
-                    setError(error.message);
-                }
+                setError(error.message);
                 setLoading(false);
             } else {
                 router.push('/platform');
@@ -86,12 +81,9 @@ export default function GirisPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-extrabold tracking-tight">
-                        <span className="text-black">DERECE</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400"> AI</span>
-                    </h1>
-                    <p className="text-sm text-black mt-2">Hesabınıza giriş yapın</p>
+                <div className="text-center mb-8 flex flex-col items-center">
+                    <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
+                    <p className="text-sm text-black mt-4">Hesabınıza giriş yapın</p>
                 </div>
 
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
@@ -143,12 +135,14 @@ export default function GirisPage() {
                                     )}
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="flex justify-end">
-                            <Link href="/auth?tab=sifre" className="text-xs text-black hover:underline">
-                                Şifremi Unuttum
-                            </Link>
+                            <div className="flex justify-end">
+                                <Link
+                                    href="/auth?tab=unuttum"
+                                    className="text-xs text-gray-500 hover:text-black"
+                                >
+                                    Şifremi Unuttum
+                                </Link>
+                            </div>
                         </div>
 
                         <Button type="submit" loading={loading}>

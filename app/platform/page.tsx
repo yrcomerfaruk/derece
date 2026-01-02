@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import ChatPage from '@/app/platform/components/koc';
 import ProgramPage from '@/app/platform/components/program';
 import { authHelpers } from '@/lib/supabase';
@@ -41,10 +42,7 @@ export default function PlatformPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 md:px-20 md:py-3 sticky top-0 bg-white z-20">
                 <div className="flex items-center">
-                    <span className="text-xl font-extrabold tracking-tight">
-                        <span className="text-black">DERECE</span>
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400"> AI</span>
-                    </span>
+                    <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-6 w-auto" />
                 </div>
                 <div className="flex items-center" style={{ gap: '7px' }}>
                     <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
