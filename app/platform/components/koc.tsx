@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import icon from '../icon.svg';
+import icon from '../../icon.svg';
 
 interface Message {
     id: string;
