@@ -28,9 +28,18 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   overflow-x: hidden;
   width: 100%;
+}
+
+/* iOS Gradient Fix */
+.text-gradient-fix {
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-color: transparent;
+  /* Fallback */
 }
 
 /* iOS Specific Fixes */

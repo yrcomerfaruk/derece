@@ -13,7 +13,7 @@ export default function LandingPage() {
             <div className="flex items-center">
               <span className="text-2xl font-extrabold tracking-tight">
                 <span className="text-black">DERECE</span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400"> AI</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400 text-gradient-fix"> AI</span>
               </span>
             </div>
             <div className="flex items-center gap-4">
@@ -40,7 +40,7 @@ export default function LandingPage() {
 
               <h1 className="text-5xl md:text-7xl font-extrabold text-black tracking-tight mb-8 leading-[1.1]">
                 Hayallerindeki Üniversiteye <br className="hidden lg:block" />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-gray-500 to-black">Adım Adım</span> Ulaş.
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-black via-gray-500 to-black text-gradient-fix">Adım Adım</span> Ulaş.
               </h1>
 
               <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -237,7 +237,7 @@ export default function LandingPage() {
           <div className="flex items-center">
             <span className="text-xl font-extrabold tracking-tight">
               <span className="text-black">DERECE</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400"> AI</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-black to-gray-400 text-gradient-fix"> AI</span>
             </span>
           </div>
           <p className="text-gray-500 text-sm">
