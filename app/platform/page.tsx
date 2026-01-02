@@ -42,7 +42,7 @@ export default function PlatformPage() {
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 md:px-20 md:py-3 sticky top-0 bg-white z-20">
                 <div className="flex items-center">
-                    <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-6 w-auto" />
+                    <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
                 </div>
                 <div className="flex items-center" style={{ gap: '7px' }}>
                     <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">

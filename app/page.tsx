@@ -11,7 +11,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
+              <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
             </div>
             <div className="flex items-center gap-4">
               <Link href="/auth?tab=giris">
@@ -37,7 +37,7 @@ export default function LandingPage() {
 
               <h1 className="text-5xl md:text-7xl font-extrabold text-black tracking-tight mb-8 leading-[1.1]">
                 Hayallerindeki Üniversiteye <br className="hidden lg:block" />
-                <Image src="/adim-adim.svg" alt="Adım Adım" width={300} height={70} className="inline-block h-[1.3em] w-auto -mt-4 align-middle" /> Ulaş.
+                <span className="text-gray-400">Adım Adım</span> Ulaş.
               </h1>
 
               <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto leading-relaxed">
@@ -184,7 +184,7 @@ export default function LandingPage() {
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center">
-            <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
+            <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
           </div>
           <p className="text-gray-500 text-sm">
             © 2026 Derece AI. Tüm hakları saklıdır.

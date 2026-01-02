@@ -123,7 +123,7 @@ export default function UnuttumPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <Image src="/logo-new.svg" alt="Derece AI" width={120} height={32} className="h-8 w-auto" />
+                    <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
                     <p className="text-sm text-black mt-4">Yeni şifrenizi belirleyin</p>
                 </div>
 
