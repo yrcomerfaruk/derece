@@ -38,11 +38,11 @@ export default function PlatformPage() {
     }
 
     return (
-        <div className="flex flex-col h-screen bg-white">
+        <div className="fixed inset-0 flex flex-col bg-white overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 md:px-20 md:py-3 sticky top-0 bg-white z-20">
+            <div className="flex-none flex items-center justify-between px-3 md:px-20 h-[50px] border-b border-gray-100 bg-white z-20">
                 <div className="flex items-center">
-                    <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+                    <span className="text-[25px] font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
                 </div>
                 <div className="flex items-center" style={{ gap: '7px' }}>
                     <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
@@ -78,11 +78,11 @@ export default function PlatformPage() {
             </div>
 
             {/* Main Content */}
-            <div className="flex-1 overflow-hidden relative">
-                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'koc' ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+            <div className="flex-1 relative overflow-hidden w-full">
+                <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${activeTab === 'koc' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
                     <ChatPage />
                 </div>
-                <div className={`absolute inset-0 transition-opacity duration-300 ${activeTab === 'program' ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+                <div className={`absolute inset-0 w-full h-full transition-opacity duration-300 ${activeTab === 'program' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'}`}>
                     <ProgramPage />
                 </div>
             </div>

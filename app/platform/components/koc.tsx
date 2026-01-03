@@ -243,7 +243,7 @@ export default function ChatPage() {
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 relative" style={{ paddingBottom: '120px' }}>
+            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 relative" style={{ paddingBottom: '80px' }}>
                 {/* Background Icon - Always visible */}
                 <div className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0">
                     <Image
