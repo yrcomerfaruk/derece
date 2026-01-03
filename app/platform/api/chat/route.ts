@@ -47,11 +47,14 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { message } = body;
+        const { message, sessionDate } = body;
 
         if (!message) {
             return NextResponse.json({ error: 'Message is required' }, { status: 400 });
         }
+
+        // Get session date (default to today)
+        const date = sessionDate || new Date().toISOString().split('T')[0];
 
         // 2. Save User Message to Supabase
         const { error: insertUserError } = await supabase
@@ -59,7 +62,8 @@ export async function POST(req: NextRequest) {
             .insert({
                 user_id: user.id,
                 content: message,
-                role: 'user'
+                role: 'user',
+                session_date: date
             });
 
         if (insertUserError) {
@@ -102,7 +106,8 @@ export async function POST(req: NextRequest) {
             .insert({
                 user_id: user.id,
                 content: text,
-                role: 'assistant'
+                role: 'assistant',
+                session_date: date
             });
 
         if (insertAiError) {
@@ -126,10 +131,15 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Get session date from query params (default to today)
+        const { searchParams } = new URL(req.url);
+        const sessionDate = searchParams.get('sessionDate') || new Date().toISOString().split('T')[0];
+
         const { data: messages, error } = await supabase
             .from('messages')
             .select('*')
             .eq('user_id', user.id)
+            .eq('session_date', sessionDate)
             .order('created_at', { ascending: true });
 
         if (error) {

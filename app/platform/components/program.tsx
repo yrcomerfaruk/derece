@@ -18,7 +18,10 @@ interface DaySchedule {
 }
 
 export default function ProgramPage() {
-    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [selectedIndex, setSelectedIndex] = useState(() => {
+        const day = new Date().getDay();
+        return day === 0 ? 6 : day - 1; // Default to Today (0=Mon...6=Sun)
+    });
     const [weekOffset, setWeekOffset] = useState(0); // 0 = Current, -1 = Previous, 1 = Next
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
     const [showToast, setShowToast] = useState(false);
@@ -37,10 +40,25 @@ export default function ProgramPage() {
 
     // Helper to generate dates
     const generateDates = (offsetDays: number) => {
-        return weekDayOrder.map((day, i) => ({
-            day,
-            date: new Date(new Date().setDate(new Date().getDate() + i + offsetDays)).toISOString().slice(0, 10),
-        }));
+        const today = new Date();
+        const currentDayIndex = today.getDay(); // 0 = Sunday, 1 = Monday, ...
+        // We want Monday (1) to be index 0.
+        // If today is Sunday (0), Monday of this week was 6 days ago.
+        // If today is Monday (1), Monday of this week is today (0 days ago).
+        // Formula to get days to subtract to reach Monday:
+        const diffToMonday = currentDayIndex === 0 ? 6 : currentDayIndex - 1;
+
+        const mondayDate = new Date(today);
+        mondayDate.setDate(today.getDate() - diffToMonday + offsetDays);
+
+        return weekDayOrder.map((day, i) => {
+            const date = new Date(mondayDate);
+            date.setDate(mondayDate.getDate() + i);
+            return {
+                day,
+                date: date.toISOString().slice(0, 10),
+            };
+        });
     };
 
     // Initialize Mock Data
@@ -106,6 +124,7 @@ export default function ProgramPage() {
     const nextDay = () => setSelectedIndex((s) => Math.min(schedule.length - 1, s + 1));
 
     const prevWeek = () => {
+        if (weekOffset <= 0) return; // Prevent going to past
         setWeekOffset(prev => prev - 1);
         setSelectedIndex(0);
     };
@@ -147,7 +166,14 @@ export default function ProgramPage() {
     };
 
     // Loading state or safe render
-    if (schedule.length === 0) return <div className="p-4 text-center text-gray-400">Yükleniyor...</div>;
+    if (schedule.length === 0) return (
+        <div className="h-full flex items-center justify-center">
+            <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+        </div>
+    );
 
     const daySchedule = schedule[selectedIndex];
 
@@ -171,7 +197,8 @@ export default function ProgramPage() {
                             <button
                                 onClick={prevWeek}
                                 title="Önceki Hafta"
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all"
+                                disabled={weekOffset <= 0}
+                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                             >
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" /></svg>
                             </button>
@@ -213,7 +240,7 @@ export default function ProgramPage() {
                 </div>
 
                 <div className="flex-1 relative overflow-y-auto overflow-x-hidden no-scrollbar bg-white" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-                    <div className="relative min-h-[1040px] px-0 pb-0 max-w-3xl mx-auto">
+                    <div className="relative min-h-[1080px] px-0 pb-0 max-w-3xl mx-auto">
 
                         {/* Time Markers - Gray Background */}
                         <div className="absolute left-0 top-0 bottom-0 w-16 z-10 bg-gray-50 border-r border-gray-100 h-full">

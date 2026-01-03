@@ -18,6 +18,9 @@ interface OnboardingData {
     daily_study_hours: number;
 }
 
+
+
+
 const SUGGESTED_QUESTIONS = [
     "Haftalık Program Oluştur",
     "Matematik netlerimi nasıl artırabilirim?",
@@ -37,7 +40,42 @@ export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const getLocalISOString = () => {
+        const date = new Date();
+        return new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
+            .toISOString()
+            .split('T')[0];
+    };
+
+    // Date/Session States
+    const [currentDate, setCurrentDate] = useState<string>(getLocalISOString());
+    const [viewDate, setViewDate] = useState<string>(getLocalISOString()); // For calendar navigation
+    const [availableDates, setAvailableDates] = useState<string[]>([]);
+    const [showCalendar, setShowCalendar] = useState(false);
+
+    // Calendar Helpers
+    const getWeekDays = (dateStr: string) => {
+        const date = new Date(dateStr);
+        const day = date.getDay();
+        const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
+        const monday = new Date(date.setDate(diff));
+
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            days.push(d.toISOString().split('T')[0]);
+        }
+        return days;
+    };
+
+    const formatWeekRange = (days: string[]) => {
+        if (days.length === 0) return '';
+        const start = new Date(days[0]);
+        const end = new Date(days[6]);
+        return `${start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`;
+    };
 
     // Onboarding States
     const [loadingAuth, setLoadingAuth] = useState(true);
@@ -114,9 +152,9 @@ export default function ChatPage() {
 
             if (localOnboarding === 'true') {
                 setIsOnboarded(true);
-                // Fetch Chat History
+                // Fetch Chat History for current date
                 try {
-                    const res = await fetch('/platform/api/chat');
+                    const res = await fetch(`/platform/api/chat?sessionDate=${currentDate}`);
                     if (res.ok) {
                         const data = await res.json();
                         if (data.messages && data.messages.length > 0) {
@@ -142,6 +180,24 @@ export default function ChatPage() {
 
         initUser();
     }, []);
+
+    // Fetch available dates
+    useEffect(() => {
+        const fetchDates = async () => {
+            try {
+                const res = await fetch('/platform/api/chat/dates');
+                if (res.ok) {
+                    const data = await res.json();
+                    setAvailableDates(data.dates || []);
+                }
+            } catch (error) {
+                console.error('Error fetching dates:', error);
+            }
+        };
+        if (isOnboarded) {
+            fetchDates();
+        }
+    }, [isOnboarded, messages]); // Refresh when messages change
 
     const handleOnboardingAnswer = async (text: string) => {
         // Echo user message
@@ -202,7 +258,7 @@ export default function ChatPage() {
             const response = await fetch('/platform/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: text }),
+                body: JSON.stringify({ message: text, sessionDate: currentDate }),
             });
 
             if (!response.ok) {
@@ -261,16 +317,58 @@ export default function ChatPage() {
         }
     };
 
+    const handleDateChange = async (newDate: string) => {
+        setCurrentDate(newDate);
+        setShowCalendar(false);
+
+        // Load messages for the new date
+        try {
+            const res = await fetch(`/platform/api/chat?sessionDate=${newDate}`);
+            if (res.ok) {
+                const data = await res.json();
+                setMessages(data.messages || []);
+            }
+        } catch (error) {
+            console.error('Error loading messages for date:', error);
+        }
+    };
+
+    const handlePrevWeek = () => {
+        const date = new Date(viewDate);
+        date.setDate(date.getDate() - 7);
+        setViewDate(date.toISOString().split('T')[0]);
+    };
+
+    const handleNextWeek = () => {
+        const date = new Date(viewDate);
+        date.setDate(date.getDate() + 7);
+        setViewDate(date.toISOString().split('T')[0]);
+    };
+
+    // Reset viewDate when calendar opens
+    useEffect(() => {
+        if (showCalendar) {
+            setViewDate(currentDate);
+        }
+    }, [showCalendar]);
+
     if (loadingAuth) {
-        return <div className="h-full flex items-center justify-center text-gray-400 text-sm">Yükleniyor...</div>;
+        return (
+            <div className="h-full flex items-center justify-center">
+                <svg className="animate-spin h-8 w-8 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        );
     }
 
     return (
         <div className="flex flex-col h-full bg-white relative">
             {/* Messages Area */}
-            <div ref={containerRef} className="flex-1 overflow-y-auto no-scrollbar p-4 relative" style={{ paddingBottom: '80px' }}>
+            <div className="flex-1 relative">
                 {/* Background Icon - Always visible */}
-                <div className="fixed inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden z-0">
                     <Image
                         src={icon}
                         alt=""
@@ -278,104 +376,114 @@ export default function ChatPage() {
                         priority
                     />
                 </div>
-                {messages.length === 0 && isOnboarded ? (
-                    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
+                <div ref={containerRef} className="absolute inset-0 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: messages.length === 0 ? '1rem' : '40px' }}>
+                    {messages.length === 0 && isOnboarded ? (
+                        <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
+                            {currentDate === getLocalISOString() ? (
+                                <>
+                                    <div className="space-y-2 relative z-10">
+                                        <h2 className="text-2xl font-bold text-black">
+                                            Merhaba, Koçun Burada!
+                                        </h2>
+                                        <p className="text-gray-500 text-sm font-medium">Sana nasıl yardımcı olabilirim?</p>
+                                    </div>
 
-                        <div className="space-y-2 relative z-10">
-                            <h2 className="text-2xl font-bold text-black">
-                                Merhaba, Koçun Burada!
-                            </h2>
-                            <p className="text-gray-500 text-sm font-medium">Sana nasıl yardımcı olabilirim?</p>
-                        </div>
-
-                        <div className="w-full max-w-4xl space-y-3 overflow-hidden relative z-10">
-                            {/* Suggested Questions */}
-                            <div className="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
-                                {SUGGESTED_QUESTIONS.slice(0, Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => handleSend(q)}
-                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
-                                    >
-                                        {q}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex overflow-x-auto no-scrollbar gap-2 px-4" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
-                                {SUGGESTED_QUESTIONS.slice(Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => handleSend(q)}
-                                        className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
-                                    >
-                                        {q}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="space-y-4 max-w-3xl mx-auto relative z-10">
-                        {messages.map((msg) => (
-                            <div
-                                key={msg.id}
-                                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                            >
-                                <div
-                                    className={`max-w-[75%] rounded-2xl px-3 py-2 ${msg.role === 'user'
-                                        ? 'bg-gray-100 text-gray-900 rounded-br-sm'
-                                        : 'bg-transparent text-gray-800 px-0'
-                                        }`}
-                                >
-                                    {msg.role === 'assistant' && (
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <div className="w-5 h-5 flex items-center justify-center">
-                                                <Image
-                                                    src={icon}
-                                                    alt="AI"
-                                                    className="w-full h-full"
-                                                />
-                                            </div>
-                                            <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
+                                    <div className="w-full max-w-4xl space-y-3 overflow-hidden relative z-10">
+                                        {/* Suggested Questions */}
+                                        <div className="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
+                                            {SUGGESTED_QUESTIONS.slice(0, Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => handleSend(q)}
+                                                    className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
+                                                >
+                                                    {q}
+                                                </button>
+                                            ))}
                                         </div>
-                                    )}
-                                    <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
-                                        {msg.role === 'assistant' ? (
-                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                        ) : (
-                                            msg.content
+                                        <div className="flex overflow-x-auto no-scrollbar gap-2 px-4" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
+                                            {SUGGESTED_QUESTIONS.slice(Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => handleSend(q)}
+                                                    className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
+                                                >
+                                                    {q}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-gray-400 text-xs font-medium">
+                                    Bu tarihte bir sohbet geçmişi bulunmuyor.
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-4 max-w-3xl mx-auto relative z-10">
+                            {messages.map((msg) => (
+                                <div
+                                    key={msg.id}
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                >
+                                    <div
+                                        className={`max-w-[75%] rounded-2xl px-3 py-2 ${msg.role === 'user'
+                                            ? 'bg-gray-100 text-gray-900 rounded-br-sm'
+                                            : 'bg-transparent text-gray-800 px-0'
+                                            }`}
+                                    >
+                                        {msg.role === 'assistant' && (
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="w-5 h-5 flex items-center justify-center">
+                                                    <Image
+                                                        src={icon}
+                                                        alt="AI"
+                                                        className="w-full h-full"
+                                                    />
+                                                </div>
+                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
+                                            </div>
                                         )}
+                                        <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
+                                            {msg.role === 'assistant' ? (
+                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                            ) : (
+                                                msg.content
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                        {isLoading && (
-                            <div className="flex justify-start">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-6 h-6 flex items-center justify-center">
-                                        <Image
-                                            src={icon}
-                                            alt="AI"
-                                            className="w-full h-full animate-pulse"
-                                        />
-                                    </div>
-                                    <div className="flex gap-1 bg-gray-50 px-3 py-2 rounded-2xl rounded-tl-sm border border-gray-100">
-                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
-                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1s' }} />
-                                        <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1s' }} />
+                            ))}
+                            {isLoading && (
+                                <div className="flex justify-start">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 flex items-center justify-center">
+                                            <Image
+                                                src={icon}
+                                                alt="AI"
+                                                className="w-full h-full animate-pulse"
+                                            />
+                                        </div>
+                                        <div className="flex gap-1 bg-gray-50 px-3 py-2 rounded-2xl rounded-tl-sm border border-gray-100">
+                                            <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '0ms', animationDuration: '1s' }} />
+                                            <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '200ms', animationDuration: '1s' }} />
+                                            <span className="w-1 h-3 bg-black rounded-full animate-pulse" style={{ animationDelay: '400ms', animationDuration: '1s' }} />
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-                )}
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
+                    )}
+                </div>
+
             </div>
 
             {/* Input Area - Fixed Bottom */}
             <div
                 ref={inputContainerRef}
-                className="fixed bottom-0 left-0 right-0 bg-white pt-2 pb-2 px-4 border-t border-gray-50 z-30"
+                className="fixed bottom-0 left-0 right-0 bg-white pt-1 pb-2 px-4 border-t border-gray-50 z-30"
                 style={{
                     paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom))',
                     paddingLeft: 'max(1rem, env(safe-area-inset-left))',
@@ -383,32 +491,95 @@ export default function ChatPage() {
                 }}
             >
                 <div className="max-w-3xl mx-auto relative">
-                    {/* Suggestions Popover */}
-                    <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showSuggestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '300px' }}>
-                        <div className="p-2 space-y-1 max-h-[240px] overflow-y-auto no-scrollbar">
-                            <div className="px-2 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Önerilen Sorular</div>
-                            {SUGGESTED_QUESTIONS.map((q, i) => (
+                    {/* Calendar Popover */}
+                    <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showCalendar ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '240px' }}>
+                        <div className="p-2">
+                            {/* Week Navigation Header */}
+                            {(() => {
+                                const currentWeekDays = getWeekDays(viewDate);
+                                const startOfWeek = currentWeekDays[0];
+                                const endOfWeek = currentWeekDays[6];
+                                const today = getLocalISOString();
+                                const oldestDate = availableDates.length > 0 ? availableDates[availableDates.length - 1] : today;
+
+                                const canGoPrev = new Date(startOfWeek) > new Date(oldestDate);
+                                const canGoNext = new Date(endOfWeek) < new Date(today);
+
+                                return (
+                                    <div className="flex items-center justify-between mb-3 px-1">
+                                        <button
+                                            onClick={handlePrevWeek}
+                                            disabled={!canGoPrev}
+                                            className={`p-1 rounded-full ${canGoPrev ? 'hover:bg-gray-100 text-gray-500' : 'text-gray-200 cursor-not-allowed'}`}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </button>
+                                        <div className="text-xs font-bold text-gray-700 uppercase tracking-wide">
+                                            {formatWeekRange(currentWeekDays)}
+                                        </div>
+                                        <button
+                                            onClick={handleNextWeek}
+                                            disabled={!canGoNext}
+                                            className={`p-1 rounded-full ${canGoNext ? 'hover:bg-gray-100 text-gray-500' : 'text-gray-200 cursor-not-allowed'}`}
+                                        >
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="space-y-1">
+                                {getWeekDays(viewDate).map((date) => {
+                                    const hasMessages = availableDates.includes(date);
+                                    const isSelected = currentDate === date;
+                                    const isToday = date === getLocalISOString();
+
+                                    return (
+                                        <button
+                                            key={date}
+                                            onClick={() => handleDateChange(date)}
+                                            className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isSelected
+                                                ? 'bg-black text-white'
+                                                : 'text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <div className="font-medium">{new Date(date).toLocaleDateString('tr-TR', { weekday: 'long' })}</div>
+                                                {isToday && <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-bold">Bugün</span>}
+                                            </div>
+                                            <div className={`text-[10px] ${hasMessages ? 'opacity-70' : 'opacity-40'}`}>{new Date(date).toLocaleDateString('tr-TR')}</div>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Show "Go to Today" if not in view */}
+                            {!getWeekDays(viewDate).includes(getLocalISOString()) && (
                                 <button
-                                    key={i}
-                                    onClick={() => {
-                                        handleSend(q);
-                                        setShowSuggestions(false);
-                                    }}
-                                    className="w-full text-left px-3 py-2 rounded-xl text-xs text-gray-700 hover:bg-gray-50 transition-colors"
+                                    onClick={() => handleDateChange(getLocalISOString())}
+                                    className="w-full mt-2 text-center text-[10px] font-medium text-gray-500 hover:text-black transition-colors border-t border-gray-50 pt-2"
                                 >
-                                    {q}
+                                    Bugüne Git
                                 </button>
-                            ))}
+                            )}
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-full flex items-center p-1 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
+                    <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center p-1 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
                         <button
-                            onClick={() => setShowSuggestions(!showSuggestions)}
-                            className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showSuggestions ? 'bg-gray-200 text-gray-600' : ''}`}
+                            onClick={() => setShowCalendar(!showCalendar)}
+                            className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showCalendar ? 'bg-gray-200 text-gray-600' : ''}`}
+                            title="Tarih Seç"
                         >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
+                                <path d="M3 10H21" stroke="currentColor" strokeWidth="2" />
+                                <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                                <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
                         <textarea
@@ -416,8 +587,9 @@ export default function ChatPage() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder={isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."}
-                            className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13"
+                            disabled={currentDate < getLocalISOString()}
+                            placeholder={currentDate < getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz...")}
+                            className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate < getLocalISOString() ? 'cursor-not-allowed opacity-50' : ''}`}
                             style={{
                                 minHeight: '24px',
                                 scrollbarWidth: 'none',
@@ -428,19 +600,19 @@ export default function ChatPage() {
                         />
                         <button
                             onClick={() => handleSend()}
-                            disabled={!input.trim() || isLoading}
-                            className={`p-1 rounded-full transition-all m-0.5 shrink-0 ${input.trim() && !isLoading
-                                ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-105'
-                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                            disabled={!input.trim() || isLoading || currentDate < getLocalISOString()}
+                            className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${input.trim() && !isLoading && currentDate >= getLocalISOString()
+                                ? 'bg-black text-white hover:bg-gray-800'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 }`}
                         >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M5 12h14M12 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M5 12h14M12 5l7 7-7 7" />
                             </svg>
                         </button>
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
