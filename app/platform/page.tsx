@@ -42,7 +42,7 @@ export default function PlatformPage() {
             {/* Header */}
             <div className="flex-none flex items-center justify-between px-3 md:px-20 h-[50px] border-b border-gray-100 bg-white z-20">
                 <div className="flex items-center">
-                    <span className="text-[25px] font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+                    <span className="text-[22px] font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
                 </div>
                 <div className="flex items-center" style={{ gap: '7px' }}>
                     <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
@@ -67,11 +67,11 @@ export default function PlatformPage() {
                     </div>
                     <button
                         onClick={handleSignOut}
-                        className="px-3 py-1 bg-gray-100 text-black rounded-full flex items-center justify-center"
+                        className="w-7 h-7 bg-gray-100 text-black rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
                         title="Çıkış Yap"
                     >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                         </svg>
                     </button>
                 </div>

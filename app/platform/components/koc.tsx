@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
 import icon from '../../icon.svg';
 
 interface Message {
@@ -108,20 +109,23 @@ export default function ChatPage() {
     // 1. Initialize User & Check Onboarding
     useEffect(() => {
         const initUser = async () => {
-            let currentUserId = localStorage.getItem('yks_coach_user_id');
-            if (!currentUserId) {
-                currentUserId = crypto.randomUUID();
-                localStorage.setItem('yks_coach_user_id', currentUserId);
-            }
-            setUserId(currentUserId);
-
-            setUserId(currentUserId);
-
             // Check Local Storage for Onboarding Status
             const localOnboarding = localStorage.getItem('yks_coach_onboarded');
 
             if (localOnboarding === 'true') {
                 setIsOnboarded(true);
+                // Fetch Chat History
+                try {
+                    const res = await fetch('/platform/api/chat');
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.messages && data.messages.length > 0) {
+                            setMessages(data.messages);
+                        }
+                    }
+                } catch (error) {
+                    console.error("Geçmiş mesajlar yüklenemedi:", error);
+                }
             } else {
                 setIsOnboarded(false);
                 // Initial Greeter for Onboarding
@@ -136,7 +140,6 @@ export default function ChatPage() {
             setLoadingAuth(false);
         };
 
-        // Delay slightly to prevent hydration mismatch or abrupt flash
         initUser();
     }, []);
 
@@ -168,11 +171,11 @@ export default function ChatPage() {
                 const hours = parseInt(text.replace(/[^0-9]/g, '')) || 4; // Fallback to 4 if parse fails
                 const finalData = { ...onboardingData, daily_study_hours: hours, user_id: userId };
 
-                // Save to Local Storage (Mock DB)
+                // Save to Local Storage (Mock DB - Onboarding Data)
                 localStorage.setItem('yks_coach_onboarding_data', JSON.stringify(finalData));
                 localStorage.setItem('yks_coach_onboarded', 'true');
 
-                nextMessage = "Harika! Profilini oluşturdum. Artık sorularını sorabilir veya 'Haftalık Program Oluştur' diyerek sana özel programı hazırlamamı isteyebilirsin.";
+                nextMessage = "Harika! Profilini oluşturdum. Artık sorularını sorabilirsin.";
 
                 setIsOnboarded(true);
                 setOnboardingStep(3); // Completed
@@ -188,22 +191,44 @@ export default function ChatPage() {
     };
 
     const handleChat = async (text: string) => {
-        // Normal Chat Logic (Placeholder for RAG)
-        const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
+        // Optimistic Update
+        const tempId = Date.now().toString();
+        const userMsg: Message = { id: tempId, role: 'user', content: text };
         setMessages(prev => [...prev, userMsg]);
         setInput('');
         setIsLoading(true);
 
-        // Mock RAG Response for now
-        // TODO: Connect to backend API
-        setTimeout(() => {
+        try {
+            const response = await fetch('/platform/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("API Error Details:", errorData);
+                throw new Error(errorData.details || errorData.error || 'Network response was not ok');
+            }
+
+            const data = await response.json();
+
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(), // Or use ID from DB if returned
+                role: 'assistant',
+                content: data.response
+            }]);
+
+        } catch (error) {
+            console.error('Chat error:', error);
             setMessages(prev => [...prev, {
                 id: Date.now().toString(),
                 role: 'assistant',
-                content: "Bu bir demo yanıtıdır. Backend entegrasyonu tamamlanınca burada gerçek yapay zeka cevapları görünecek."
+                content: "Üzgünüm, bir hata oluştu. Lütfen tekrar dene."
             }]);
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     const handleSend = (text: string = input) => {
@@ -314,8 +339,12 @@ export default function ChatPage() {
                                             <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
                                         </div>
                                     )}
-                                    <div className="leading-relaxed text-xs whitespace-pre-wrap break-words">
-                                        {msg.content}
+                                    <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
+                                        {msg.role === 'assistant' ? (
+                                            <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                        ) : (
+                                            msg.content
+                                        )}
                                     </div>
                                 </div>
                             </div>
