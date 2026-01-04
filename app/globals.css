@@ -34,6 +34,8 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+  /* Prevent pull-to-refresh */
 }
 
 /* iOS Gradient Fix */
@@ -50,10 +52,12 @@ body {
   /* Often needed for gradients on spans */
 }
 
-/* iOS Specific Fixes */
+/* iOS Specific Fixes & Global Restrictions */
 * {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 
 input,
@@ -62,6 +66,8 @@ select {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+  -webkit-user-select: text !important;
+  user-select: text !important;
 }
 
 /* Smooth scrolling for iOS */

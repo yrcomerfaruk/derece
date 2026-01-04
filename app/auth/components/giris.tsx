@@ -67,7 +67,15 @@ export default function GirisPage() {
             const { error } = await authHelpers.signIn(email, password);
 
             if (error) {
-                setError(error.message);
+                let errorMessage = error.message;
+                if (errorMessage.includes('Invalid login credentials')) {
+                    errorMessage = 'Hatalı e-posta veya şifre.';
+                } else if (errorMessage.includes('Email not confirmed')) {
+                    errorMessage = 'Lütfen e-posta adresinizi doğrulayın.';
+                } else if (errorMessage.includes('Too many requests')) {
+                    errorMessage = 'Çok fazla deneme yaptınız. Lütfen biraz bekleyin.';
+                }
+                setError(errorMessage);
                 setLoading(false);
             } else {
                 router.push('/platform');
@@ -82,7 +90,7 @@ export default function GirisPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <Image src="/logo.png" alt="Derece AI" width={0} height={40} className="h-[40px] w-auto" priority unoptimized />
+                    <Image src="/logo.png" alt="Derece AI" width={0} height={60} className="h-[60px] w-auto" priority unoptimized />
                     <p className="text-sm text-black mt-4">Hesabınıza giriş yapın</p>
                 </div>
 
@@ -116,7 +124,7 @@ export default function GirisPage() {
                                     onChange={(e: any) => setPassword(e.target.value)}
                                     required
                                     autoComplete="current-password"
-                                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-black focus:outline-none focus:ring-1 focus:ring-black transition-all text-black bg-white"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-black focus:outline-none focus:ring-1 focus:ring-black transition-all text-black bg-white"
                                 />
                                 <button
                                     type="button"
@@ -135,7 +143,7 @@ export default function GirisPage() {
                                     )}
                                 </button>
                             </div>
-                            <div className="flex justify-end">
+                            <div className="flex justify-end mt-3">
                                 <Link
                                     href="/auth?tab=unuttum"
                                     className="text-xs text-gray-500 hover:text-black"

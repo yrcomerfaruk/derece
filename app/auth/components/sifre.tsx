@@ -15,7 +15,7 @@ function Input({ label, error, className = '', ...props }: any) {
                 </label>
             )}
             <input
-                className={`w-full px-4 py-2.5 rounded-lg border text-black bg-white ${error
+                className={`w-full px-3 py-2 rounded-lg border text-black bg-white ${error
                     ? 'border-red-300 focus:border-red-500'
                     : 'border-gray-200 focus:border-black'
                     } focus:outline-none focus:ring-1 focus:ring-black transition-all ${className}`}
@@ -67,7 +67,13 @@ export default function SifrePage() {
             const { error } = await authHelpers.resetPassword(email);
 
             if (error) {
-                setError(error.message);
+                let errorMessage = error.message;
+                if (errorMessage.includes('Too many requests')) {
+                    errorMessage = 'Çok fazla deneme yaptınız. Lütfen biraz bekleyin.';
+                } else if (errorMessage.includes('Invalid email')) {
+                    errorMessage = 'Geçersiz e-posta adresi.';
+                }
+                setError(errorMessage);
                 setLoading(false);
             } else {
                 setSuccess(true);

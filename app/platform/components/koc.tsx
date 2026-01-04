@@ -27,7 +27,7 @@ function ReportCard() {
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">HAFTALIK PERFORMANS RAPORU</span>
             </div>
 
-            <p className="text-sm text-gray-700 leading-relaxed mb-6 font-medium">
+            <p className="text-[12px] text-gray-700 leading-relaxed mb-6 font-medium">
                 Şu anki genel ilerlemen <span className="font-bold text-black">%38</span> seviyesinde. Toplam <span className="font-bold text-black">67</span> konudan <span className="font-bold text-black">0</span> tanesini başarıyla tamamladın. Henüz yolun başındasın ama istikrarlı bir çalışma ile netlerini hızla artırabiliriz. Eksik olduğun konulara odaklanmaya ne dersin? Unutma, her büyük başarı küçük bir adımla başlar.
             </p>
 
@@ -50,6 +50,9 @@ function ReportCard() {
         </div>
     );
 }
+
+
+
 
 const SUGGESTED_QUESTIONS = [
     "Haftalık Program Oluştur",
@@ -445,7 +448,7 @@ export default function ChatPage() {
                             </svg>
                         </div>
                     ) : isReportMode ? (
-                        <div className="h-full flex items-center justify-center animate-fade-in relative z-10 w-full">
+                        <div className="h-full flex items-center justify-center relative z-10 w-full">
                             <ReportCard />
                         </div>
                     ) : messages.length === 0 && isOnboarded ? (
@@ -635,19 +638,21 @@ export default function ChatPage() {
                                 {/* Weekly Report Button (8th Day) */}
                                 <div className="pt-1 mt-1 border-t border-gray-50">
                                     {(() => {
-                                        const currentWeekDays = getWeekDays(viewDate); // Fix: call function directly
-                                        const endOfWeek = currentWeekDays[6];
+                                        const currentWeekDays = getWeekDays(viewDate);
+                                        const endOfWeekStr = currentWeekDays[6]; // Sunday "YYYY-MM-DD"
+
+                                        // Set deadline to Sunday 23:00
+                                        const reportAvailableTime = new Date(endOfWeekStr);
+                                        reportAvailableTime.setHours(23, 0, 0, 0);
+
                                         const now = new Date();
-                                        // Reset time part to compare only dates safely if needed, or stick to ISO string comparison
-                                        const todayStr = getLocalISOString();
-                                        // const isWeekFinished = new Date(todayStr) > new Date(endOfWeek);
-                                        const isWeekFinished = true; // TEST İÇİN GEÇİCİ OLARAK AÇIK
+                                        const isWeekFinished = now >= reportAvailableTime;
 
                                         return (
                                             <button
                                                 onClick={handleOpenReport}
                                                 disabled={!isWeekFinished}
-                                                title={!isWeekFinished ? "Hafta henüz tamamlanmadı." : "Haftalık Raporu Görüntüle"}
+                                                title={!isWeekFinished ? "Rapor Pazar günü 23:00'dan sonra görüntülenebilir." : "Haftalık Raporu Görüntüle"}
                                                 className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isReportMode
                                                     ? 'bg-black text-white'
                                                     : !isWeekFinished
@@ -657,7 +662,6 @@ export default function ChatPage() {
                                             >
                                                 <div className="flex items-center gap-2">
                                                     <div className="font-medium">Haftalık Rapor</div>
-                                                    {isWeekFinished && <span className="text-[9px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-bold">Hazır</span>}
                                                 </div>
                                                 {!isWeekFinished ? (
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
