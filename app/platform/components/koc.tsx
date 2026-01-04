@@ -439,7 +439,7 @@ export default function ChatPage() {
                         priority
                     />
                 </div>
-                <div ref={containerRef} className="absolute inset-0 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: messages.length === 0 ? '1rem' : '50px' }}>
+                <div ref={containerRef} className="absolute inset-0 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: messages.length === 0 || isReportMode ? '1rem' : '50px' }}>
                     {isHistoryLoading ? (
                         <div className="h-full flex items-center justify-center">
                             <svg className="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -448,7 +448,7 @@ export default function ChatPage() {
                             </svg>
                         </div>
                     ) : isReportMode ? (
-                        <div className="h-full flex items-center justify-center relative z-10 w-full">
+                        <div className="h-full flex items-center justify-center relative z-10 w-full max-w-3xl mx-auto">
                             <ReportCard />
                         </div>
                     ) : messages.length === 0 && isOnboarded ? (

@@ -90,7 +90,7 @@ export default function GirisPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <Image src="/logo.png" alt="Derece AI" width={0} height={60} className="h-[60px] w-auto" priority unoptimized />
+                    <Image src="/logo.png" alt="Derece AI" width={0} height={30} className="h-[30px] w-auto" priority unoptimized />
                     <p className="text-sm text-black mt-4">Hesabınıza giriş yapın</p>
                 </div>
 
