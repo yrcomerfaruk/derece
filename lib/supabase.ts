@@ -36,8 +36,9 @@ export const authHelpers = {
 
     // Reset password
     resetPassword: async (email: string) => {
+        const origin = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
         const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+            redirectTo: `${origin}/auth/callback?type=recovery`,
         });
         return { data, error };
     },

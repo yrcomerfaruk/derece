@@ -15,9 +15,9 @@ function AuthContent() {
         case 'kayit':
             return <KayitComponent />;
         case 'sifre':
-            return <UnuttumComponent />;
-        case 'unuttum':
             return <SifreComponent />;
+        case 'unuttum':
+            return <UnuttumComponent />;
         default:
             return <GirisComponent />;
     }
