@@ -34,13 +34,13 @@ export async function GET(request: NextRequest) {
 
         if (!error) {
             if (type === 'recovery') {
-                return NextResponse.redirect(`${origin}/auth?tab=unuttum`);
+                return NextResponse.redirect(`${origin}/auth?tab=sifre`);
             }
         }
     }
 
     if (type === 'recovery') {
-        return NextResponse.redirect(`${origin}/auth?tab=unuttum`);
+        return NextResponse.redirect(`${origin}/auth?tab=sifre`);
     }
 
     // URL to redirect to after sign in process completes

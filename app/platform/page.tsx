@@ -45,7 +45,7 @@ export default function PlatformPage() {
             {/* Header */}
             <div className="flex-none flex items-center justify-between px-3 md:px-20 h-[50px] border-b border-gray-100 bg-white z-20">
                 <div className="flex items-center">
-                    <span className="text-[22px] font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+                    <Image src="/logo.png" alt="Derece AI" width={0} height={35} className="h-[35px] w-auto" priority unoptimized />
                 </div>
                 <div className="flex items-center" style={{ gap: '7px' }}>
                     <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">

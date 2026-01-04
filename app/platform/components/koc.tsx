@@ -10,6 +10,7 @@ interface Message {
     id: string;
     role: 'user' | 'assistant';
     content: string;
+    type?: 'text' | 'report';
 }
 
 interface OnboardingData {
@@ -18,8 +19,37 @@ interface OnboardingData {
     daily_study_hours: number;
 }
 
+function ReportCard() {
+    return (
+        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm w-full">
+            <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">HAFTALIK PERFORMANS RAPORU</span>
+            </div>
 
+            <p className="text-sm text-gray-700 leading-relaxed mb-6 font-medium">
+                Şu anki genel ilerlemen <span className="font-bold text-black">%38</span> seviyesinde. Toplam <span className="font-bold text-black">67</span> konudan <span className="font-bold text-black">0</span> tanesini başarıyla tamamladın. Henüz yolun başındasın ama istikrarlı bir çalışma ile netlerini hızla artırabiliriz. Eksik olduğun konulara odaklanmaya ne dersin? Unutma, her büyük başarı küçük bir adımla başlar.
+            </p>
 
+            <div className="flex items-start gap-12 border-t border-gray-100 pt-4">
+                <div>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">DERS DURUMU</h4>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-black"></div>
+                        <span className="text-xs font-semibold text-gray-700">9 Aktif Ders</span>
+                    </div>
+                </div>
+                <div>
+                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">KONU TAKİBİ</h4>
+                    <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+                        <span className="text-xs font-semibold text-gray-500">67 Kalan Konu</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const SUGGESTED_QUESTIONS = [
     "Haftalık Program Oluştur",
@@ -53,6 +83,7 @@ export default function ChatPage() {
     const [viewDate, setViewDate] = useState<string>(getLocalISOString()); // For calendar navigation
     const [availableDates, setAvailableDates] = useState<string[]>([]);
     const [showCalendar, setShowCalendar] = useState(false);
+    const [isReportMode, setIsReportMode] = useState(false);
 
     // Calendar Helpers
     const getWeekDays = (dateStr: string) => {
@@ -144,6 +175,8 @@ export default function ChatPage() {
         }
     }, [pathname, router]);
 
+    const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+
     // 1. Initialize User & Check Onboarding
     useEffect(() => {
         const initUser = async () => {
@@ -152,6 +185,7 @@ export default function ChatPage() {
 
             if (localOnboarding === 'true') {
                 setIsOnboarded(true);
+                setIsHistoryLoading(true);
                 // Fetch Chat History for current date
                 try {
                     const res = await fetch(`/platform/api/chat?sessionDate=${currentDate}`);
@@ -163,6 +197,8 @@ export default function ChatPage() {
                     }
                 } catch (error) {
                     console.error("Geçmiş mesajlar yüklenemedi:", error);
+                } finally {
+                    setIsHistoryLoading(false);
                 }
             } else {
                 setIsOnboarded(false);
@@ -318,8 +354,11 @@ export default function ChatPage() {
     };
 
     const handleDateChange = async (newDate: string) => {
+        setIsHistoryLoading(true);
         setCurrentDate(newDate);
+        setIsReportMode(false); // Reset report mode
         setShowCalendar(false);
+        setMessages([]); // Clear previous messages to avoid confusion
 
         // Load messages for the new date
         try {
@@ -330,6 +369,8 @@ export default function ChatPage() {
             }
         } catch (error) {
             console.error('Error loading messages for date:', error);
+        } finally {
+            setIsHistoryLoading(false);
         }
     };
 
@@ -351,6 +392,25 @@ export default function ChatPage() {
             setViewDate(currentDate);
         }
     }, [showCalendar]);
+
+    const handleOpenReport = async () => {
+        if (isLoading) return;
+        setIsReportMode(true);
+        setShowCalendar(false);
+        setMessages([]); // Clear chat for report view
+        setIsLoading(true);
+
+        // Simulating API delay
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        setMessages([{
+            id: Date.now().toString(),
+            role: 'assistant',
+            content: '',
+            type: 'report'
+        }]);
+        setIsLoading(false);
+    };
 
     if (loadingAuth) {
         return (
@@ -376,8 +436,19 @@ export default function ChatPage() {
                         priority
                     />
                 </div>
-                <div ref={containerRef} className="absolute inset-0 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: messages.length === 0 ? '1rem' : '40px' }}>
-                    {messages.length === 0 && isOnboarded ? (
+                <div ref={containerRef} className="absolute inset-0 overflow-y-auto no-scrollbar p-4" style={{ paddingBottom: messages.length === 0 ? '1rem' : '50px' }}>
+                    {isHistoryLoading ? (
+                        <div className="h-full flex items-center justify-center">
+                            <svg className="animate-spin h-8 w-8 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    ) : isReportMode ? (
+                        <div className="h-full flex items-center justify-center animate-fade-in relative z-10 w-full">
+                            <ReportCard />
+                        </div>
+                    ) : messages.length === 0 && isOnboarded ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
                             {currentDate === getLocalISOString() ? (
                                 <>
@@ -425,15 +496,15 @@ export default function ChatPage() {
                             {messages.map((msg) => (
                                 <div
                                     key={msg.id}
-                                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                                    className={`flex ${msg.role === 'user' ? 'justify-end' : (msg.type === 'report' ? 'justify-center w-full' : 'justify-start')}`}
                                 >
                                     <div
-                                        className={`max-w-[75%] rounded-2xl px-3 py-2 ${msg.role === 'user'
-                                            ? 'bg-gray-100 text-gray-900 rounded-br-sm'
+                                        className={`${msg.type === 'report' ? 'w-full flex justify-center' : 'max-w-[85%]'} ${msg.role === 'user'
+                                            ? 'bg-gray-100 text-gray-900 rounded-2xl rounded-br-sm px-3 py-2'
                                             : 'bg-transparent text-gray-800 px-0'
                                             }`}
                                     >
-                                        {msg.role === 'assistant' && (
+                                        {msg.role === 'assistant' && msg.type !== 'report' && (
                                             <div className="flex items-center gap-2 mb-1">
                                                 <div className="w-5 h-5 flex items-center justify-center">
                                                     <Image
@@ -445,13 +516,18 @@ export default function ChatPage() {
                                                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
                                             </div>
                                         )}
-                                        <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
-                                            {msg.role === 'assistant' ? (
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                            ) : (
-                                                msg.content
-                                            )}
-                                        </div>
+
+                                        {msg.type === 'report' ? (
+                                            <ReportCard />
+                                        ) : (
+                                            <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
+                                                {msg.role === 'assistant' ? (
+                                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                                ) : (
+                                                    msg.content
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -535,7 +611,7 @@ export default function ChatPage() {
                             <div className="space-y-1">
                                 {getWeekDays(viewDate).map((date) => {
                                     const hasMessages = availableDates.includes(date);
-                                    const isSelected = currentDate === date;
+                                    const isSelected = currentDate === date && !isReportMode;
                                     const isToday = date === getLocalISOString();
 
                                     return (
@@ -555,6 +631,47 @@ export default function ChatPage() {
                                         </button>
                                     );
                                 })}
+
+                                {/* Weekly Report Button (8th Day) */}
+                                <div className="pt-1 mt-1 border-t border-gray-50">
+                                    {(() => {
+                                        const currentWeekDays = getWeekDays(viewDate); // Fix: call function directly
+                                        const endOfWeek = currentWeekDays[6];
+                                        const now = new Date();
+                                        // Reset time part to compare only dates safely if needed, or stick to ISO string comparison
+                                        const todayStr = getLocalISOString();
+                                        // const isWeekFinished = new Date(todayStr) > new Date(endOfWeek);
+                                        const isWeekFinished = true; // TEST İÇİN GEÇİCİ OLARAK AÇIK
+
+                                        return (
+                                            <button
+                                                onClick={handleOpenReport}
+                                                disabled={!isWeekFinished}
+                                                title={!isWeekFinished ? "Hafta henüz tamamlanmadı." : "Haftalık Raporu Görüntüle"}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isReportMode
+                                                    ? 'bg-black text-white'
+                                                    : !isWeekFinished
+                                                        ? 'text-gray-300 cursor-not-allowed'
+                                                        : 'text-gray-700 hover:bg-gray-50'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-2">
+                                                    <div className="font-medium">Haftalık Rapor</div>
+                                                    {isWeekFinished && <span className="text-[9px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-bold">Hazır</span>}
+                                                </div>
+                                                {!isWeekFinished ? (
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M12 17V17.01M12 13.5C12 13.5 14 12.5 14 10C14 7.79086 12.2091 6 10 6C8.5 6 7 7 7 8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M9 17H15M9 13H15M9 9H10M13 3L18.6 8.6C18.8 8.8 19 9.1 19 9.4V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V5C5 3.9 5.9 3 7 3H12.6C12.9 3 13.2 3.2 13.4 3.4L13 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                        );
+                                    })()}
+                                </div>
                             </div>
 
                             {/* Show "Go to Today" if not in view */}
@@ -569,7 +686,7 @@ export default function ChatPage() {
                         </div>
                     </div>
 
-                    <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center p-1 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
+                    <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center px-1 py-0.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
                         <button
                             onClick={() => setShowCalendar(!showCalendar)}
                             className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showCalendar ? 'bg-gray-200 text-gray-600' : ''}`}
@@ -582,14 +699,15 @@ export default function ChatPage() {
                                 <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                             </svg>
                         </button>
+
                         <textarea
                             ref={textareaRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            disabled={currentDate < getLocalISOString()}
-                            placeholder={currentDate < getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz...")}
-                            className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate < getLocalISOString() ? 'cursor-not-allowed opacity-50' : ''}`}
+                            disabled={currentDate < getLocalISOString() || isReportMode}
+                            placeholder={isReportMode ? "Rapor görüntüleniyor..." : (currentDate < getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."))}
+                            className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate < getLocalISOString() || isReportMode ? 'cursor-not-allowed opacity-50' : ''}`}
                             style={{
                                 minHeight: '24px',
                                 scrollbarWidth: 'none',
@@ -600,8 +718,8 @@ export default function ChatPage() {
                         />
                         <button
                             onClick={() => handleSend()}
-                            disabled={!input.trim() || isLoading || currentDate < getLocalISOString()}
-                            className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${input.trim() && !isLoading && currentDate >= getLocalISOString()
+                            disabled={!input.trim() || isLoading || currentDate < getLocalISOString() || isReportMode}
+                            className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${input.trim() && !isLoading && currentDate >= getLocalISOString() && !isReportMode
                                 ? 'bg-black text-white hover:bg-gray-800'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 }`}

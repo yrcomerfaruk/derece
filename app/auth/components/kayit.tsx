@@ -132,7 +132,7 @@ export default function KayitPage() {
         <div className="min-h-screen flex items-center justify-center bg-white px-4">
             <div className="w-full max-w-sm">
                 <div className="text-center mb-8 flex flex-col items-center">
-                    <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+                    <Image src="/logo.png" alt="Derece AI" width={0} height={40} className="h-[40px] w-auto" priority unoptimized />
                     <p className="text-sm text-black mt-4">Yeni hesap oluşturun</p>
                 </div>
 

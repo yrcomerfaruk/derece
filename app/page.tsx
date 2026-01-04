@@ -11,7 +11,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[50px]">
             <div className="flex items-center">
-              <span className="text-[25px] font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+              <Image src="/logo.png" alt="Derece AI" width={0} height={40} className="h-[40px] w-auto" priority unoptimized />
             </div>
             <div className="flex items-center gap-4">
               <Link href="/auth?tab=giris">
@@ -109,6 +109,7 @@ export default function LandingPage() {
                   src="/images/target-3d.png"
                   alt="Kişiye Özel Program"
                   fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-contain"
                 />
               </div>
@@ -125,6 +126,7 @@ export default function LandingPage() {
                   src="/images/chat-3d.png"
                   alt="7/24 AI Koç"
                   fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-contain"
                 />
               </div>
@@ -141,6 +143,7 @@ export default function LandingPage() {
                   src="/images/rocket-3d.png"
                   alt="Hızlı İlerleme"
                   fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   className="object-contain"
                 />
               </div>
@@ -209,7 +212,7 @@ export default function LandingPage() {
       <footer className="bg-white border-t border-gray-100 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center">
-            <span className="text-xl font-extrabold text-black">DERECE <span className="text-gray-500">AI</span></span>
+            <Image src="/logo.png" alt="Derece AI" width={0} height={35} className="h-[35px] w-auto" unoptimized />
           </div>
           <p className="text-gray-500 text-sm">
             © 2026 Derece AI. Tüm hakları saklıdır.
