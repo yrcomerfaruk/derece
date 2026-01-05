@@ -87,6 +87,8 @@ export default function ChatPage() {
     const [availableDates, setAvailableDates] = useState<string[]>([]);
     const [showCalendar, setShowCalendar] = useState(false);
     const [isReportMode, setIsReportMode] = useState(false);
+    const [reportWeekStart, setReportWeekStart] = useState<string | null>(null); // Track which week's report is open
+
 
     // Calendar Helpers
     const getWeekDays = (dateStr: string) => {
@@ -227,7 +229,9 @@ export default function ChatPage() {
                 const res = await fetch('/platform/api/chat/dates');
                 if (res.ok) {
                     const data = await res.json();
-                    setAvailableDates(data.dates || []);
+                    // Ensure dates are sorted ascending
+                    const sortedDates = (data.dates || []).sort();
+                    setAvailableDates(sortedDates);
                 }
             } catch (error) {
                 console.error('Error fetching dates:', error);
@@ -389,16 +393,11 @@ export default function ChatPage() {
         setViewDate(date.toISOString().split('T')[0]);
     };
 
-    // Reset viewDate when calendar opens
-    useEffect(() => {
-        if (showCalendar) {
-            setViewDate(currentDate);
-        }
-    }, [showCalendar]);
 
     const handleOpenReport = async () => {
         if (isLoading) return;
         setIsReportMode(true);
+        setReportWeekStart(getWeekDays(viewDate)[0]); // Save which week's report we're viewing
         setShowCalendar(false);
         setMessages([]); // Clear chat for report view
         setIsLoading(true);
@@ -462,25 +461,25 @@ export default function ChatPage() {
                                         <p className="text-gray-500 text-sm font-medium">Sana nasıl yardımcı olabilirim?</p>
                                     </div>
 
-                                    <div className="w-full max-w-4xl space-y-3 overflow-hidden relative z-10">
+                                    <div className="w-full max-w-3xl mx-auto space-y-2 overflow-hidden relative z-10">
                                         {/* Suggested Questions */}
-                                        <div className="flex overflow-x-auto no-scrollbar gap-2 px-4 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
+                                        <div className="flex overflow-x-auto no-scrollbar gap-1.5 px-4 md:px-0 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
                                             {SUGGESTED_QUESTIONS.slice(0, Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => handleSend(q)}
-                                                    className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
+                                                    className="whitespace-nowrap px-2 py-1 bg-white rounded-lg transition-all border border-gray-200 text-gray-700 text-[10px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
                                                 >
                                                     {q}
                                                 </button>
                                             ))}
                                         </div>
-                                        <div className="flex overflow-x-auto no-scrollbar gap-2 px-4" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
+                                        <div className="flex overflow-x-auto no-scrollbar gap-1.5 px-4 md:px-0" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
                                             {SUGGESTED_QUESTIONS.slice(Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => handleSend(q)}
-                                                    className="whitespace-nowrap px-3 py-1.5 bg-white rounded-xl transition-all border border-gray-200 text-gray-700 text-[11px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
+                                                    className="whitespace-nowrap px-2 py-1 bg-white rounded-lg transition-all border border-gray-200 text-gray-700 text-[10px] font-medium shrink-0 hover:bg-gray-50 bg-opacity-80 backdrop-blur-sm"
                                                 >
                                                     {q}
                                                 </button>
@@ -523,7 +522,7 @@ export default function ChatPage() {
                                         {msg.type === 'report' ? (
                                             <ReportCard />
                                         ) : (
-                                            <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none">
+                                            <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none prose-p:my-2 prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-2 prose-li:my-1 prose-ul:my-2 prose-ol:my-2">
                                                 {msg.role === 'assistant' ? (
                                                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                                                 ) : (
@@ -576,13 +575,20 @@ export default function ChatPage() {
                             {/* Week Navigation Header */}
                             {(() => {
                                 const currentWeekDays = getWeekDays(viewDate);
-                                const startOfWeek = currentWeekDays[0];
-                                const endOfWeek = currentWeekDays[6];
                                 const today = getLocalISOString();
-                                const oldestDate = availableDates.length > 0 ? availableDates[availableDates.length - 1] : today;
+                                const startOfCurrentWeek = getWeekDays(today)[0];
+                                const startOfViewWeek = currentWeekDays[0];
 
-                                const canGoPrev = new Date(startOfWeek) > new Date(oldestDate);
-                                const canGoNext = new Date(endOfWeek) < new Date(today);
+                                // Oldest date determines the "start week" we can go back to
+                                const oldestDate = availableDates.length > 0 ? availableDates[0] : today;
+                                const startOfOldestWeek = getWeekDays(oldestDate)[0];
+
+                                // Navigation Logic
+                                // Can go back only if current view start is after the oldest available week start
+                                const canGoPrev = new Date(startOfViewWeek) > new Date(startOfOldestWeek);
+
+                                // Can go next only if current view start is before the real current week start
+                                const canGoNext = new Date(startOfViewWeek) < new Date(startOfCurrentWeek);
 
                                 return (
                                     <div className="flex items-center justify-between mb-3 px-1">
@@ -617,13 +623,20 @@ export default function ChatPage() {
                                     const isSelected = currentDate === date && !isReportMode;
                                     const isToday = date === getLocalISOString();
 
+                                    // Lock logic: before first message OR after today
+                                    const oldestDate = availableDates.length > 0 ? availableDates[0] : getLocalISOString();
+                                    const isLocked = new Date(date) < new Date(oldestDate) || new Date(date) > new Date(getLocalISOString());
+
                                     return (
                                         <button
                                             key={date}
-                                            onClick={() => handleDateChange(date)}
+                                            onClick={() => !isLocked && handleDateChange(date)}
+                                            disabled={isLocked}
                                             className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isSelected
                                                 ? 'bg-black text-white'
-                                                : 'text-gray-700 hover:bg-gray-50'
+                                                : isLocked
+                                                    ? 'text-gray-300 cursor-not-allowed'
+                                                    : 'text-gray-700 hover:bg-gray-50'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-2">
@@ -648,14 +661,21 @@ export default function ChatPage() {
                                         const now = new Date();
                                         const isWeekFinished = now >= reportAvailableTime;
 
+                                        // Also, don't show report button if we are in a future week
+                                        const isFutureWeek = new Date(currentWeekDays[0]) > new Date(getWeekDays(getLocalISOString())[0]);
+                                        const isDisabled = !isWeekFinished || isFutureWeek;
+
+                                        // Only show as selected if report is open AND we're viewing the same week
+                                        const isThisWeekReportOpen = isReportMode && reportWeekStart === currentWeekDays[0];
+
                                         return (
                                             <button
                                                 onClick={handleOpenReport}
-                                                disabled={!isWeekFinished}
-                                                title={!isWeekFinished ? "Rapor Pazar günü 23:00'dan sonra görüntülenebilir." : "Haftalık Raporu Görüntüle"}
-                                                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isReportMode
+                                                disabled={isDisabled}
+                                                title={isDisabled ? "Rapor Pazar günü 23:00'dan sonra görüntülenebilir." : "Haftalık Raporu Görüntüle"}
+                                                className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isThisWeekReportOpen
                                                     ? 'bg-black text-white'
-                                                    : !isWeekFinished
+                                                    : isDisabled
                                                         ? 'text-gray-300 cursor-not-allowed'
                                                         : 'text-gray-700 hover:bg-gray-50'
                                                     }`}
@@ -663,7 +683,7 @@ export default function ChatPage() {
                                                 <div className="flex items-center gap-2">
                                                     <div className="font-medium">Haftalık Rapor</div>
                                                 </div>
-                                                {!isWeekFinished ? (
+                                                {isDisabled ? (
                                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                                         <path d="M12 17V17.01M12 13.5C12 13.5 14 12.5 14 10C14 7.79086 12.2091 6 10 6C8.5 6 7 7 7 8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                                                     </svg>
@@ -709,9 +729,9 @@ export default function ChatPage() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            disabled={currentDate < getLocalISOString() || isReportMode}
-                            placeholder={isReportMode ? "Rapor görüntüleniyor..." : (currentDate < getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."))}
-                            className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate < getLocalISOString() || isReportMode ? 'cursor-not-allowed opacity-50' : ''}`}
+                            disabled={currentDate !== getLocalISOString() || isReportMode}
+                            placeholder={isReportMode ? "Rapor görüntüleniyor..." : (currentDate !== getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."))}
+                            className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate !== getLocalISOString() || isReportMode ? 'cursor-not-allowed opacity-50' : ''}`}
                             style={{
                                 minHeight: '24px',
                                 scrollbarWidth: 'none',
@@ -722,8 +742,8 @@ export default function ChatPage() {
                         />
                         <button
                             onClick={() => handleSend()}
-                            disabled={!input.trim() || isLoading || currentDate < getLocalISOString() || isReportMode}
-                            className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${input.trim() && !isLoading && currentDate >= getLocalISOString() && !isReportMode
+                            disabled={!input.trim() || isLoading || currentDate !== getLocalISOString() || isReportMode}
+                            className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${input.trim() && !isLoading && currentDate === getLocalISOString() && !isReportMode
                                 ? 'bg-black text-white hover:bg-gray-800'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 }`}
