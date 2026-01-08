@@ -37,20 +37,7 @@ export async function GET(request: NextRequest) {
                 return NextResponse.redirect(`${origin}/auth?tab=sifre`);
             }
 
-            // Check if user has completed onboarding
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                const { data: onboarding } = await supabase
-                    .from('user_onboarding')
-                    .select('id')
-                    .eq('user_id', user.id)
-                    .single();
 
-                if (!onboarding) {
-                    // User hasn't completed onboarding
-                    return NextResponse.redirect(`${origin}/onboarding`);
-                }
-            }
         }
     }
 
