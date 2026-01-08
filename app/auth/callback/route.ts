@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
     const requestUrl = new URL(request.url);
     const code = requestUrl.searchParams.get('code');
     const type = requestUrl.searchParams.get('type');
-    const next = requestUrl.searchParams.get('next') ?? '/';
+    const next = requestUrl.searchParams.get('next') ?? '/platform';
     const origin = requestUrl.origin;
 
     if (code) {
@@ -35,6 +35,21 @@ export async function GET(request: NextRequest) {
         if (!error) {
             if (type === 'recovery') {
                 return NextResponse.redirect(`${origin}/auth?tab=sifre`);
+            }
+
+            // Check if user has completed onboarding
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data: onboarding } = await supabase
+                    .from('user_onboarding')
+                    .select('id')
+                    .eq('user_id', user.id)
+                    .single();
+
+                if (!onboarding) {
+                    // User hasn't completed onboarding
+                    return NextResponse.redirect(`${origin}/onboarding`);
+                }
             }
         }
     }

@@ -13,11 +13,6 @@ interface Message {
     type?: 'text' | 'report';
 }
 
-interface OnboardingData {
-    target_degree: string;
-    current_level: string;
-    daily_study_hours: number;
-}
 
 function ReportCard() {
     return (
@@ -113,12 +108,8 @@ export default function ChatPage() {
         return `${start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`;
     };
 
-    // Onboarding States
+    // Loading State
     const [loadingAuth, setLoadingAuth] = useState(true);
-    const [userId, setUserId] = useState<string | null>(null);
-    const [isOnboarded, setIsOnboarded] = useState(false);
-    const [onboardingStep, setOnboardingStep] = useState(0); // 0: Hedef, 1: Seviye, 2: Saat, 3: Done
-    const [onboardingData, setOnboardingData] = useState<Partial<OnboardingData>>({});
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -182,44 +173,27 @@ export default function ChatPage() {
 
     const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
-    // 1. Initialize User & Check Onboarding
+    // Initialize - Load Chat History
     useEffect(() => {
-        const initUser = async () => {
-            // Check Local Storage for Onboarding Status
-            const localOnboarding = localStorage.getItem('yks_coach_onboarded');
-
-            if (localOnboarding === 'true') {
-                setIsOnboarded(true);
-                setIsHistoryLoading(true);
-                // Fetch Chat History for current date
-                try {
-                    const res = await fetch(`/platform/api/chat?sessionDate=${currentDate}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        if (data.messages && data.messages.length > 0) {
-                            setMessages(data.messages);
-                        }
+        const initChat = async () => {
+            setIsHistoryLoading(true);
+            try {
+                const res = await fetch(`/platform/api/chat?sessionDate=${currentDate}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.messages && data.messages.length > 0) {
+                        setMessages(data.messages);
                     }
-                } catch (error) {
-                    console.error("Geçmiş mesajlar yüklenemedi:", error);
-                } finally {
-                    setIsHistoryLoading(false);
                 }
-            } else {
-                setIsOnboarded(false);
-                // Initial Greeter for Onboarding
-                setMessages([
-                    {
-                        id: 'welcome',
-                        role: 'assistant',
-                        content: "Merhaba! Seni daha iyi tanımak ve sana özel bir program hazırlamak için birkaç soru sormam gerekiyor. Öncelikle, YKS'deki hedefin ne? (Örn: İlk 1000, Tıp, Mühendislik veya 'Eşit Ağırlık 50k')"
-                    }
-                ]);
+            } catch (error) {
+                console.error("Geçmiş mesajlar yüklenemedi:", error);
+            } finally {
+                setIsHistoryLoading(false);
+                setLoadingAuth(false);
             }
-            setLoadingAuth(false);
         };
 
-        initUser();
+        initChat();
     }, []);
 
     // Fetch available dates
@@ -229,7 +203,6 @@ export default function ChatPage() {
                 const res = await fetch('/platform/api/chat/dates');
                 if (res.ok) {
                     const data = await res.json();
-                    // Ensure dates are sorted ascending
                     const sortedDates = (data.dates || []).sort();
                     setAvailableDates(sortedDates);
                 }
@@ -237,57 +210,9 @@ export default function ChatPage() {
                 console.error('Error fetching dates:', error);
             }
         };
-        if (isOnboarded) {
-            fetchDates();
-        }
-    }, [isOnboarded, messages]); // Refresh when messages change
+        fetchDates();
+    }, [messages]);
 
-    const handleOnboardingAnswer = async (text: string) => {
-        // Echo user message
-        const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
-        setMessages(prev => [...prev, userMsg]);
-        setInput('');
-        setIsLoading(true);
-
-        // Process based on step
-        try {
-            await new Promise(resolve => setTimeout(resolve, 600)); // Fake think time
-
-            let nextMessage = '';
-
-            if (onboardingStep === 0) {
-                // Captured: Target Degree
-                setOnboardingData(prev => ({ ...prev, target_degree: text }));
-                nextMessage = "Süper! Peki şu anki seviyeni nasıl tanımlarsın? (Başlangıç, Orta, İleri)";
-                setOnboardingStep(1);
-            } else if (onboardingStep === 1) {
-                // Captured: Current Level
-                setOnboardingData(prev => ({ ...prev, current_level: text }));
-                nextMessage = "Anlaşıldı. Son olarak, günde ortalama kaç saat ders çalışabilirsin?";
-                setOnboardingStep(2);
-            } else if (onboardingStep === 2) {
-                // Captured: Hours -> FINISH
-                const hours = parseInt(text.replace(/[^0-9]/g, '')) || 4; // Fallback to 4 if parse fails
-                const finalData = { ...onboardingData, daily_study_hours: hours, user_id: userId };
-
-                // Save to Local Storage (Mock DB - Onboarding Data)
-                localStorage.setItem('yks_coach_onboarding_data', JSON.stringify(finalData));
-                localStorage.setItem('yks_coach_onboarded', 'true');
-
-                nextMessage = "Harika! Profilini oluşturdum. Artık sorularını sorabilirsin.";
-
-                setIsOnboarded(true);
-                setOnboardingStep(3); // Completed
-            }
-
-            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'assistant', content: nextMessage }]);
-
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     const handleChat = async (text: string) => {
         // Optimistic Update
@@ -332,12 +257,7 @@ export default function ChatPage() {
 
     const handleSend = (text: string = input) => {
         if (!text.trim() || isLoading) return;
-
-        if (!isOnboarded) {
-            handleOnboardingAnswer(text.trim());
-        } else {
-            handleChat(text.trim());
-        }
+        handleChat(text.trim());
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -450,7 +370,7 @@ export default function ChatPage() {
                         <div className="h-full flex items-center justify-center relative z-10 w-full max-w-3xl mx-auto">
                             <ReportCard />
                         </div>
-                    ) : messages.length === 0 && isOnboarded ? (
+                    ) : messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
                             {currentDate === getLocalISOString() ? (
                                 <>
@@ -730,7 +650,7 @@ export default function ChatPage() {
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             disabled={currentDate !== getLocalISOString() || isReportMode}
-                            placeholder={isReportMode ? "Rapor görüntüleniyor..." : (currentDate !== getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : (isOnboarded ? "Bir şeyler sor..." : "Cevabını buraya yaz..."))}
+                            placeholder={isReportMode ? "Rapor görüntüleniyor..." : (currentDate !== getLocalISOString() ? "Geçmiş günlere mesaj gönderilemez." : "Bir şeyler sor...")}
                             className={`flex-1 bg-transparent border-none focus:ring-0 focus:outline-none resize-none max-h-32 py-0 px-2 text-gray-700 placeholder-gray-400 appearance-none no-scrollbar flex items-center placeholder-13 ${currentDate !== getLocalISOString() || isReportMode ? 'cursor-not-allowed opacity-50' : ''}`}
                             style={{
                                 minHeight: '24px',
