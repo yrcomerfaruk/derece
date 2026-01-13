@@ -28,12 +28,56 @@ Kurallar:
 Kullanıcı: "Matematik netlerim artmıyor."
 Sen: "**Panik yok, strateji var.** Matematikte net artışı hemen olmaz. Öncelikle hangi konularda hata yapıyorsun?
 
+
 ### Analiz Yapalım:
 *   **Konu eksiği mi var?** → Hangi konularda zorlanıyorsun?
 *   **İşlem hatası mı yapıyorsun?** → Bildiğin konularda mı takılıyorsun?
 
 Bana son deneme analizinden bahset, ona göre bir **tekrar planı** yapalım."
 `;
+
+// Helper to fetch today's program string
+async function getTodaysProgramSummary(userId: string, date: string, supabase: any) {
+    try {
+        const { data: program } = await supabase
+            .from('user_programs')
+            .select('id')
+            .eq('user_id', userId)
+            .eq('status', 'active')
+            .maybeSingle();
+
+        if (!program) return "Öğrencinin aktif bir programı henüz yok.";
+
+        const { data: items } = await supabase
+            .from('program_items')
+            .select(`
+                slot_index, duration_minutes, is_completed,
+                topic:topics (subject, title)
+            `)
+            .eq('program_id', program.id)
+            .eq('session_date', date)
+            .order('slot_index');
+
+        if (!items || items.length === 0) return "Bugün için planlanmış bir ders yok.";
+
+        const summary = items.map((item: any) => {
+            const startMin = item.slot_index;
+            const endMin = startMin + item.duration_minutes;
+            const startH = Math.floor(startMin / 60);
+            const startM = startMin % 60;
+            const endH = Math.floor(endMin / 60);
+            const endM = endMin % 60;
+
+            const timeStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')} - ${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+            const statusStr = item.is_completed ? "✅ [BİTTİ]" : "⭕ [BEKLİYOR]";
+            return `- ${timeStr}: ${statusStr} ${item.topic?.subject} (${item.topic?.title})`;
+        }).join('\n');
+
+        return "Bugünkü Program:\n" + summary;
+    } catch (e) {
+        return "Program bilgisi alınamadı.";
+    }
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -70,20 +114,41 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
         }
 
-        // 3. Generate AI Response
+        // 3. Fetch Program Context (Read-Only)
+        const programContext = await getTodaysProgramSummary(user.id, date, supabase);
+
+        // 4. Generate AI Response
         // Using "gemini-1.5-pro" as the engine because "gemini-2.5" URL causes 400 Bad Request.
         // The persona is handled via SYSTEM_INSTRUCTION to be "Gemini 2.5".
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+
+        const finalSystemInstruction = SYSTEM_INSTRUCTION + `
+        
+        \n\n--- MÜHİM BİLGİ: ÖĞRENCİNİN PROGRAMI ---
+        ${programContext}
+        
+        \n\n--- EYLEM KURALLARI ---
+        1. Sen programı **GÖREBİLİRSİN** ama **DEĞİŞTİREMEZSİN**.
+        2. Eğer öğrenci "şunu ekle", "bugünü sil" derse: "Ben ana koçun olduğum için programına müdahale edemiyorum. Lütfen 'Program' sekmesine giderek Program Asistanı ile görüş, o halledecektir." diyerek nazikçe reddet.
+        3. Tavsiye verirken yukarıdaki programa atıfta bulun.
+        4. **PROGRAM ANALİZİ İSTENİRSE:** (Örn: "Bugünü özetle", "Programım nasıl?", "Bugün ne var?"):
+           - Programı maddeler halinde sayma (Zaten görünüyor). Onun yerine **yorumla**.
+           - **Yoğunluk Analizi:** "Bugün yoğun bir gün, toplam X saat çalışman var."
+           - **Konu Dağılımı:** "Hem Sayısal (Matematik) hem Sözel (Tarih) birleştirmişsin, bu zihni taze tutar." veya "Sadece Matematik var, beynin yorulabilir, sık ara ver."
+           - **Motivasyon:** "Zorlu bir Türev günü, ama halledersen AYT'de +1 net cepte düşün."
+           - **Tamamlananlar:** Yanında "✅ [BİTTİ]" yazan dersleri öğrenci tamamlamıştır. Bunlar için tebrik et ("Harikasın, Matematiği bitirmişsin!").
+           - **Kalanlar:** Yanında "⭕ [BEKLİYOR]" yazanlara odaklan ("Şimdi sırada Tarih var, haydi masaya!").
+        `;
 
         const chat = model.startChat({
             history: [
                 {
                     role: "user",
-                    parts: [{ text: SYSTEM_INSTRUCTION }],
+                    parts: [{ text: finalSystemInstruction }],
                 },
                 {
                     role: "model",
-                    parts: [{ text: "Anlaşıldı. 2026 yılındayım ve ben Gemini 2.5 modeliyim. YKS koçu olarak kurallara uygun cevaplar vereceğim." }],
+                    parts: [{ text: "Anlaşıldı. Programı görebiliyorum ancak değiştiremem. YKS koçluğu yapacağım ve program değişikliği taleplerini Program Asistanına yönlendireceğim." }],
                 },
             ],
             // Token limit removed as requested

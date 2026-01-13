@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { supabase, authHelpers } from '@/lib/supabase';
 
 
@@ -34,6 +35,7 @@ export default function ProgramPage() {
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
 
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isSwitchingWeek, setIsSwitchingWeek] = useState(false);
 
     // Navigation State
     const [selectedIndex, setSelectedIndex] = useState(() => {
@@ -42,9 +44,28 @@ export default function ProgramPage() {
     });
 
     // Chat State
-    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-        { role: 'assistant', content: 'Merhaba! Programınla ilgili değişiklik yapmak istersen bana buradan yazabilirsin.' }
-    ]);
+    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+
+    // Load Chat History
+    useEffect(() => {
+        const loadHistory = async () => {
+            try {
+                const res = await fetch('/platform/api/program');
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.messages && data.messages.length > 0) {
+                        setChatMessages(data.messages);
+                    } else {
+                        // Default welcome if no history
+                        setChatMessages([{ role: 'assistant', content: "Merhaba, Derece AI Program Asistanı'nım. Programında yapmak istediğin değişiklikleri bana iletebilirsin." }]);
+                    }
+                }
+            } catch (e) {
+                console.error("Chat history load error", e);
+            }
+        };
+        loadHistory();
+    }, []);
     const [chatInput, setChatInput] = useState('');
 
     const router = useRouter();
@@ -53,7 +74,8 @@ export default function ProgramPage() {
     const weekDayOrder = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 
     const fetchProgram = async (dateRef: Date = currentDate, showLoading = true) => {
-        if (showLoading) setLoading(true); // Only show full loading on first load
+        if (showLoading) setLoading(true);
+        else setIsSwitchingWeek(true);
 
         const { user } = await authHelpers.getUser();
         if (!user) return;
@@ -113,7 +135,7 @@ export default function ProgramPage() {
                 .from('program_items')
                 .select(`
                     id, day_index, slot_index, activity_type, duration_minutes, is_completed, session_date,
-                    topic:topics (id, subject, topic)
+                    topic:topics (id, subject, title)
                 `)
                 .eq('program_id', currentProgramId);
 
@@ -152,6 +174,7 @@ export default function ProgramPage() {
         }
 
         if (showLoading) setLoading(false);
+        else setIsSwitchingWeek(false);
     };
 
     useEffect(() => {
@@ -218,8 +241,8 @@ export default function ProgramPage() {
                 setChatMessages(prev => [...prev, { role: 'assistant', content: 'Üzgünüm, bir hata oluştu: ' + data.error }]);
             } else {
                 setChatMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
-                // Always refresh program to reflect potential changes
-                await fetchProgram();
+                // Refresh program without full loading spinner (background fade only)
+                await fetchProgram(currentDate, false);
             }
         } catch (error) {
             console.error('Network Error:', error);
@@ -236,8 +259,8 @@ export default function ProgramPage() {
         const startHour = Math.floor(slotIndex / 60);
         const startMinute = slotIndex % 60;
 
-        // Saat 7'den itibaren pozisyon hesapla (timeline 7:00'dan başlıyor)
-        const startFrom7 = slotIndex - (7 * 60); // 7:00 = 420 dakika
+        // Saat 6'dan itibaren pozisyon hesapla (timeline 6:00'dan başlıyor)
+        const startFrom6 = slotIndex - (6 * 60); // 6:00 = 360 dakika
         const height = durationMinutes;
 
         // Zaman etiketi oluştur
@@ -248,7 +271,7 @@ export default function ProgramPage() {
         const timeLabel = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')} - ${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
 
         return {
-            top: startFrom7, // 1px = 1min
+            top: startFrom6, // 1px = 1min
             height: height,
             timeLabel
         };
@@ -342,11 +365,11 @@ export default function ProgramPage() {
     const daySchedule = schedule[selectedIndex];
 
     return (
-        <div className="h-full bg-gray-50 relative overflow-hidden">
+        <div className="h-full bg-white relative overflow-hidden">
             {/* SCHEDULE VIEW (Full Height) */}
-            <div className="h-full flex flex-col bg-white overflow-hidden">
+            <div className={`h-full flex flex-col bg-white overflow-hidden transition-opacity duration-300 ${isSwitchingWeek ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
                 {/* Day Header */}
-                <div className="shrink-0 bg-white z-10 border-b border-gray-100">
+                <div className="shrink-0 bg-transparent z-10 border-b border-gray-100">
                     <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
                         {/* Left Controls */}
                         <div className="flex items-center gap-2">
@@ -449,20 +472,20 @@ export default function ProgramPage() {
 
                 {/* Timeline */}
                 <div className="flex-1 overflow-y-auto no-scrollbar relative w-full">
-                    <div className="relative min-h-[1080px] max-w-3xl mx-auto pt-4 pb-20">
+                    <div className="relative min-h-[1140px] max-w-3xl mx-auto pt-4 pb-20">
 
                         {/* Time Markers - Gray Background */}
                         <div className="absolute left-0 top-0 bottom-0 w-16 z-10 bg-gray-50 border-r border-gray-100 h-full">
-                            {Array.from({ length: 18 }).map((_, i) => (
+                            {Array.from({ length: 19 }).map((_, i) => (
                                 <div key={i} className="absolute w-full text-center text-[11px] text-gray-400 font-medium" style={{ top: `${(i * 60) + 10}px` }}>
-                                    {String(7 + i).padStart(2, '0')}:00
+                                    {String(6 + i).padStart(2, '0')}:00
                                 </div>
                             ))}
                         </div>
 
                         {/* Grid Lines */}
                         <div className="absolute left-16 right-0 top-0 bottom-0">
-                            {Array.from({ length: 18 }).map((_, i) => (
+                            {Array.from({ length: 19 }).map((_, i) => (
                                 <div key={i} className="absolute w-full border-t border-gray-100 border-dashed" style={{ top: `${(i * 60) + 20}px` }}></div>
                             ))}
                         </div>
@@ -504,7 +527,7 @@ export default function ProgramPage() {
                                             </div>
                                             <h4 className={`text-sm font-semibold text-gray-900 ${item.is_completed ? 'line-through text-gray-400' : ''} truncate`}>
                                                 {/* @ts-ignore */}
-                                                {item.topic ? `${item.topic.subject} - ${item.topic.topic}` : 'Ders'}
+                                                {item.topic ? `${item.topic.subject} - ${item.topic.title}` : 'Ders'}
                                             </h4>
                                         </div>
 
@@ -557,23 +580,29 @@ export default function ProgramPage() {
                         </div>
 
                         {/* Input */}
+                        {/* Input */}
                         <div className="p-2 bg-white border-t border-gray-100">
-                            <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-1.5 border border-gray-200 focus-within:border-black focus-within:ring-1 focus-within:ring-black transition-all">
+                            <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center px-1 py-0.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
                                 <input
                                     type="text"
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && !isChatLoading && handleChatSend()}
                                     placeholder="Değişiklik yap..."
-                                    className="flex-1 bg-transparent border-none text-sm text-gray-800 focus:outline-none placeholder-gray-400"
+                                    className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none py-0 px-2 text-gray-700 placeholder-gray-400 text-sm"
                                     disabled={isChatLoading}
                                 />
                                 <button
                                     onClick={handleChatSend}
                                     disabled={!chatInput.trim() || isChatLoading}
-                                    className="p-1.5 text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${chatInput.trim() && !isChatLoading
+                                        ? 'bg-black text-white hover:bg-gray-800'
+                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        }`}
                                 >
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M5 12h14M12 5l7 7-7 7" />
+                                    </svg>
                                 </button>
                             </div>
                         </div>
@@ -585,7 +614,7 @@ export default function ProgramPage() {
             <button
                 ref={fabRef}
                 onClick={() => setIsChatOpen(prev => !prev)}
-                className="fixed bottom-6 right-6 w-10 h-10 bg-black text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-50"
+                className="fixed bottom-6 right-6 w-10 h-10 bg-black text-white rounded-full shadow-xl flex items-center justify-center z-50"
             >
                 {isChatOpen ? (
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
