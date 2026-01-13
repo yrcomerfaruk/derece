@@ -56,14 +56,33 @@ export async function POST(request: Request) {
     try {
         const { message, chatHistory } = await request.json();
 
-        const { data: activeProgram } = await supabase
+        let { data: activeProgram } = await supabase
             .from('user_programs')
             .select('id')
             .eq('user_id', user.id)
             .eq('status', 'active')
             .single();
 
-        if (!activeProgram) return NextResponse.json({ error: 'No active program found' }, { status: 404 });
+        if (!activeProgram) {
+            // Auto-create program for new users
+            const { data: newProgram, error: createError } = await supabase
+                .from('user_programs')
+                .insert({
+                    user_id: user.id,
+                    status: 'active',
+                    start_date: new Date().toISOString(),
+                    // Default end date: 1 year from now (or June 2026 roughly)
+                    end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
+                })
+                .select('id')
+                .single();
+
+            if (createError || !newProgram) {
+                console.error("Program Creation Error:", createError);
+                return NextResponse.json({ error: `Failed to create initial program: ${createError?.message || 'Unknown error (newProgram is null)'}` }, { status: 500 });
+            }
+            activeProgram = newProgram;
+        }
 
         await supabase.from('program_assistant_messages').insert({
             user_id: user.id,
@@ -74,7 +93,7 @@ export async function POST(request: Request) {
 
         const systemPrompt = `You are a strict YKS (Turkish University Entrance Exam) Program Coach.
         Your goal is to modify their study schedule based on their requests.
-        Today's Date: ${new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+        Today's Date: ${new Date().toLocaleDateString('tr-TR', { timeZone: 'Europe/Istanbul', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
         
         CRITICAL RULES:
         1. ONLY accept subjects and topics that are part of the detailed YKS (TYT/AYT/YDT) curriculum.

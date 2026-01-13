@@ -84,25 +84,27 @@ export async function executeAddSession(userId: string, args: any, supabase: any
     if (!program) return { success: false, message: "Aktif bir programın yok. Lütfen önce program oluştur." };
 
     // Day Logic
+    const getIstanbulDateStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
+    const todayStr = getIstanbulDateStr();
+    const today = new Date(todayStr); // Local midnight treated as UTC (safe for day math)
+
     let targetDayIndex = -1;
-    let targetDate = new Date();
+    let targetDate = new Date(today); // Clone
     const normalizedDay = day.toLowerCase();
-    const today = new Date();
     const currentDayIndex = (today.getDay() + 6) % 7; // Monday=0
 
     if (normalizedDay.includes('bugün')) {
-        targetDayIndex = currentDayIndex; targetDate = today;
+        targetDayIndex = currentDayIndex; targetDate = new Date(today);
     } else if (normalizedDay.includes('yarın')) {
-        targetDayIndex = (currentDayIndex + 1) % 7; targetDate.setDate(today.getDate() + 1);
+        targetDayIndex = (currentDayIndex + 1) % 7;
+        targetDate.setDate(today.getDate() + 1);
     } else {
         const days = ['pazartesi', 'salı', 'çarşamba', 'perşembe', 'cuma', 'cumartesi', 'pazar'];
         const foundIndex = days.findIndex(d => normalizedDay.includes(d));
         if (foundIndex !== -1) {
             targetDayIndex = foundIndex;
             let diff = targetDayIndex - currentDayIndex;
-            // Handle "Haftaya Pazartesi" etc. logic if needed, simple logic for now:
-            // If user says "Pazartesi" and today is Tuesday, assume next week? Or past?
-            // Usually assumes coming occurance.
+            // Handle "Haftaya Pazartesi" etc. logic checking relative to TODAY (Istanbul)
             if (diff < 0 && !normalizedDay.includes('geçen')) diff += 7; // Coming day
             if (normalizedDay.includes('haftaya') || normalizedDay.includes('gelecek')) diff += 7;
             targetDate.setDate(today.getDate() + diff);
@@ -111,8 +113,8 @@ export async function executeAddSession(userId: string, args: any, supabase: any
 
     if (targetDayIndex === -1) return { success: false, message: "Hangi gün olduğunu anlayamadım. Lütfen 'Bugün', 'Yarın' veya gün adı belirt." };
 
-    const sessionDateStr = targetDate.toISOString().slice(0, 10);
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const sessionDateStr = targetDate.toLocaleDateString('en-CA'); // YYYY-MM-DD
+    // Note: sessionDateStr is already YYYY-MM-DD based on our math on 'today'
 
     // Allow modification of today, but warn for past
     if (sessionDateStr < todayStr) return { success: false, message: "Geçmiş günlere ders ekleyemem." };
@@ -230,14 +232,17 @@ export async function executeDeleteSession(userId: string, args: any, supabase: 
     const { data: program } = await supabase.from('user_programs').select('id').eq('user_id', userId).eq('status', 'active').single();
     if (!program) return { success: false, message: "Aktif program bulunamadı." };
 
-    // Day Logic (Duplicate of above, could be extracted but fine for now)
-    let targetDate = new Date();
+    // Day Logic
+    const getIstanbulDateStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Istanbul' });
+    const todayStr = getIstanbulDateStr();
+    const today = new Date(todayStr);
+
+    let targetDate = new Date(today);
     const normalizedDay = day.toLowerCase();
-    const today = new Date();
     const currentDayIndex = (today.getDay() + 6) % 7;
 
     if (normalizedDay.includes('bugün')) {
-        targetDate = today;
+        targetDate = new Date(today);
     } else if (normalizedDay.includes('yarın')) {
         targetDate.setDate(today.getDate() + 1);
     } else {
@@ -253,7 +258,7 @@ export async function executeDeleteSession(userId: string, args: any, supabase: 
         }
     }
 
-    const sessionDateStr = targetDate.toISOString().slice(0, 10);
+    const sessionDateStr = targetDate.toLocaleDateString('en-CA');
 
     if (topicHint) {
         // Find items to delete

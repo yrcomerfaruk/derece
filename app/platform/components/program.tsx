@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Image from 'next/image';
 import { supabase, authHelpers } from '@/lib/supabase';
 
 
@@ -28,7 +27,7 @@ interface DaySchedule {
 
 export default function ProgramPage() {
     const [loading, setLoading] = useState(true);
-    const [generating, setGenerating] = useState(false);
+
     const [hasProgram, setHasProgram] = useState(false);
     const [programId, setProgramId] = useState<string | null>(null);
     const [programStartDate, setProgramStartDate] = useState<Date | null>(null);
@@ -83,6 +82,9 @@ export default function ProgramPage() {
         // 1. Calculate Week Dates Locally (No API call)
         // Helper inline for now or defined outside. Let's define it inside to be safe with closurescope if needed, or better, just executing logic.
         const d = new Date(dateRef);
+        // Normalize to noon to avoid DST/midnight shifts affecting the date
+        d.setHours(12, 0, 0, 0);
+
         const day = d.getDay(); // 0=Sun
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         const monday = new Date(d);
@@ -124,8 +126,7 @@ export default function ProgramPage() {
                 if (programs.start_date) setProgramStartDate(new Date(programs.start_date));
             } else {
                 setHasProgram(false);
-                setLoading(false);
-                return;
+                // Continue to render empty schedule
             }
         }
 
@@ -139,38 +140,41 @@ export default function ProgramPage() {
                 `)
                 .eq('program_id', currentProgramId);
 
-            if (error) {
-                console.error('Error fetching items:', error);
-                setLoading(false);
-                return;
-            }
+            const items = (!error && rawItems) ? rawItems.sort((a, b) => a.slot_index - b.slot_index) : [];
 
-            // Sort items in JavaScript
-            const items = rawItems?.sort((a, b) => a.slot_index - b.slot_index);
+            // Organize into days using API dates
+            const days: DaySchedule[] = weekDayOrder.map((dayName, idx) => {
+                const targetDateStr = weekDates[idx].date; // YYYY-MM-DD
 
-            if (items) {
-                // Organize into days using API dates
-                const days: DaySchedule[] = weekDayOrder.map((dayName, idx) => {
-                    const targetDateStr = weekDates[idx].date; // YYYY-MM-DD
-
-                    return {
-                        day: dayName,
-                        date: targetDateStr,
-                        items: items.filter((i: any) => {
-                            // If item has session_date, match exactly
-                            if (i.session_date) {
-                                return i.session_date === targetDateStr;
-                            }
-                            // Fallback for old items: match day_index (legacy)
-                            return i.day_index === idx;
-                        }).map((i: any) => ({
-                            ...i,
-                            topic: Array.isArray(i.topic) ? i.topic[0] : i.topic
-                        }))
-                    };
-                });
-                setSchedule(days);
-            }
+                return {
+                    day: dayName,
+                    date: targetDateStr,
+                    items: items.filter((i: any) => {
+                        // If item has session_date, match exactly
+                        if (i.session_date) {
+                            return i.session_date === targetDateStr;
+                        }
+                        // Fallback for old items: match day_index (legacy)
+                        return i.day_index === idx;
+                    }).map((i: any) => ({
+                        ...i,
+                        topic: Array.isArray(i.topic) ? i.topic[0] : i.topic
+                    }))
+                };
+            });
+            setSchedule(days);
+        } else {
+            // No Program -> Create Empty Schedule structure so calendar still renders
+            setHasProgram(false);
+            const days: DaySchedule[] = weekDayOrder.map((dayName, idx) => {
+                const targetDateStr = weekDates[idx].date;
+                return {
+                    day: dayName,
+                    date: targetDateStr,
+                    items: []
+                };
+            });
+            setSchedule(days);
         }
 
         if (showLoading) setLoading(false);
@@ -181,25 +185,32 @@ export default function ProgramPage() {
         fetchProgram();
     }, []);
 
-    const handleCreateProgram = async () => {
-        setGenerating(true);
-        try {
-            const response = await fetch('/platform/api/program', { method: 'POST' });
-            if (!response.ok) {
-                const err = await response.json();
-                throw new Error(err.error || 'Program oluşturulamadı');
-            }
+    // Auto-refresh at midnight to update to new day
+    useEffect(() => {
+        const checkMidnight = () => {
+            const now = new Date();
+            const currentDay = now.getDay();
+            const expectedIndex = currentDay === 0 ? 6 : currentDay - 1;
 
-            const result = await response.json();
-            if (result.success) {
-                await fetchProgram();
+            if (selectedIndex !== expectedIndex) {
+                setSelectedIndex(expectedIndex);
+                setCurrentDate(new Date());
+                fetchProgram(new Date(), false);
+
+                // Clear chat messages for new day
+                setChatMessages([{
+                    role: 'assistant',
+                    content: "Merhaba, Derece AI Program Asistanı'nım. Programında yapmak istediğin değişiklikleri bana iletebilirsin."
+                }]);
             }
-        } catch (error: any) {
-            alert('Hata: ' + error.message);
-        } finally {
-            setGenerating(false);
-        }
-    };
+        };
+
+        // Check every minute
+        const interval = setInterval(checkMidnight, 60000);
+        return () => clearInterval(interval);
+    }, [selectedIndex]);
+
+
 
     const handleToggleComplete = async (itemId: string, currentStatus: boolean) => {
         // Optimistic update
@@ -322,45 +333,7 @@ export default function ProgramPage() {
         </div>
     );
 
-    if (!hasProgram) {
-        // ... (Keep existing No Program View) ...
-        return (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-gray-50">
-                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-md w-full">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
-                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                            <polyline points="7 3 7 8 15 8"></polyline>
-                        </svg>
-                    </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Henüz Programın Yok</h2>
-                    <p className="text-gray-500 mb-8 text-sm">Hedeflerine uygun, kişiselleştirilmiş haftalık çalışma programını hemen oluştur.</p>
 
-                    <button
-                        onClick={handleCreateProgram}
-                        disabled={generating}
-                        className="w-full py-3 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                        {generating ? (
-                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                        ) : (
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                            </svg>
-                        )}
-                        {generating ? 'Program Oluşturuluyor...' : 'Programımı Oluştur'}
-                    </button>
-                    <p className="text-[10px] text-gray-400 mt-4">Program oluşturulurken seviyen ve hedeflerin dikkate alınır.</p>
-                </div>
-            </div>
-        );
-    }
 
     const daySchedule = schedule[selectedIndex];
 
@@ -378,6 +351,13 @@ export default function ProgramPage() {
                                 onClick={() => {
                                     const newDate = new Date(currentDate);
                                     newDate.setDate(newDate.getDate() - 7);
+
+                                    // Limit: Only show days within THIS month
+                                    const today = new Date();
+                                    if (newDate.getMonth() !== today.getMonth()) {
+                                        showToast("Sadece bu ayın programını görüntüleyebilirsin.");
+                                        return;
+                                    }
 
                                     // Limit: Don't go before program start date
                                     if (programStartDate) {
@@ -499,7 +479,7 @@ export default function ProgramPage() {
                                     <div
                                         key={item.id}
                                         onClick={() => {
-                                            const today = new Date().toISOString().slice(0, 10);
+                                            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
                                             if (daySchedule.date !== today) {
                                                 showToast('Geçmiş veya gelecek günlerin programına müdahale edemezsin.');
                                                 return;
