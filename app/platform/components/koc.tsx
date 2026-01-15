@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
-import ReactMarkdown from 'react-markdown';
 import icon from '../../icon.svg';
+import SuggestedQuestions from './oneri';
+import CalendarPopup from './takvim';
+import Mesaj from './mesaj';
 
 interface Message {
     id: string;
@@ -12,56 +14,6 @@ interface Message {
     content: string;
     type?: 'text' | 'report';
 }
-
-
-function ReportCard() {
-    return (
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm w-full">
-            <div className="flex items-center gap-2 mb-3">
-                <div className="w-1.5 h-1.5 rounded-full bg-black"></div>
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">HAFTALIK PERFORMANS RAPORU</span>
-            </div>
-
-            <p className="text-[12px] text-gray-700 leading-relaxed mb-6 font-medium">
-                Şu anki genel ilerlemen <span className="font-bold text-black">%38</span> seviyesinde. Toplam <span className="font-bold text-black">67</span> konudan <span className="font-bold text-black">0</span> tanesini başarıyla tamamladın. Henüz yolun başındasın ama istikrarlı bir çalışma ile netlerini hızla artırabiliriz. Eksik olduğun konulara odaklanmaya ne dersin? Unutma, her büyük başarı küçük bir adımla başlar.
-            </p>
-
-            <div className="flex items-start gap-12 border-t border-gray-100 pt-4">
-                <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">DERS DURUMU</h4>
-                    <div className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-black"></div>
-                        <span className="text-xs font-semibold text-gray-700">9 Aktif Ders</span>
-                    </div>
-                </div>
-                <div>
-                    <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">KONU TAKİBİ</h4>
-                    <div className="flex items-center gap-2">
-                        <div className="w-1 h-1 rounded-full bg-gray-300"></div>
-                        <span className="text-xs font-semibold text-gray-500">67 Kalan Konu</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-
-
-
-const SUGGESTED_QUESTIONS = [
-    "Matematik netlerimi nasıl artırabilirim?",
-    "Haftalık ilerlememi özetle",
-    "Sınav takvimi ne zaman?",
-    "TYT Türkçe için kaynak önerisi",
-    "Günde kaç saat çalışmalıyım?",
-    "Odaklanma sorunumu nasıl çözerim?",
-    "AYT Matematik konuları neler?",
-    "Deneme analizini nasıl yaparım?",
-    "Biyoloji ezberleri için taktik ver",
-    "Geometriye nasıl çalışılır?",
-    "Motivasyonum düştü, ne yapmalıyım?"
-];
 
 export default function ChatPage() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -85,7 +37,7 @@ export default function ChatPage() {
     const [reportWeekStart, setReportWeekStart] = useState<string | null>(null); // Track which week's report is open
 
 
-    // Calendar Helpers
+    // Helper for Report Logic (needs to replicate what we had or import)
     const getWeekDays = (dateStr: string) => {
         const date = new Date(dateStr);
         const day = date.getDay();
@@ -101,12 +53,6 @@ export default function ChatPage() {
         return days;
     };
 
-    const formatWeekRange = (days: string[]) => {
-        if (days.length === 0) return '';
-        const start = new Date(days[0]);
-        const end = new Date(days[6]);
-        return `${start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} - ${end.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`;
-    };
 
     // Loading State
     const [loadingAuth, setLoadingAuth] = useState(true);
@@ -115,8 +61,6 @@ export default function ChatPage() {
     const containerRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const inputContainerRef = useRef<HTMLDivElement>(null);
-    const calendarRef = useRef<HTMLDivElement>(null);
-    const suggestedQuestionsRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -125,21 +69,6 @@ export default function ChatPage() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isLoading]);
-
-    // Click outside to close popups
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (calendarRef.current && !calendarRef.current.contains(event.target as Node)) {
-                setShowCalendar(false);
-            }
-            if (suggestedQuestionsRef.current && !suggestedQuestionsRef.current.contains(event.target as Node)) {
-                setShowSuggestedQuestions(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     // iOS Keyboard Fix - Prevent input from being hidden behind keyboard
     useEffect(() => {
@@ -273,7 +202,7 @@ export default function ChatPage() {
     };
 
     const handleSend = (text: string = input) => {
-        if (!text.trim() || isLoading) return;
+        if (!text.trim() || isLoading || currentDate !== getLocalISOString() || isReportMode) return;
         handleChat(text.trim());
     };
 
@@ -317,19 +246,6 @@ export default function ChatPage() {
             setIsHistoryLoading(false);
         }
     };
-
-    const handlePrevWeek = () => {
-        const date = new Date(viewDate);
-        date.setDate(date.getDate() - 7);
-        setViewDate(date.toISOString().split('T')[0]);
-    };
-
-    const handleNextWeek = () => {
-        const date = new Date(viewDate);
-        date.setDate(date.getDate() + 7);
-        setViewDate(date.toISOString().split('T')[0]);
-    };
-
 
     const handleOpenReport = async () => {
         if (isLoading) return;
@@ -385,7 +301,7 @@ export default function ChatPage() {
                         </div>
                     ) : isReportMode ? (
                         <div className="h-full flex items-center justify-center relative z-10 w-full max-w-3xl mx-auto">
-                            <ReportCard />
+                            <Mesaj msg={{ id: 'report-view', role: 'assistant', content: '', type: 'report' }} />
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">
@@ -399,9 +315,9 @@ export default function ChatPage() {
                                     </div>
 
                                     <div className="w-full max-w-3xl mx-auto space-y-2 overflow-hidden relative z-10">
-                                        {/* Suggested Questions */}
+                                        {/* Suggested Questions Inline for Empty State */}
                                         <div className="flex overflow-x-auto no-scrollbar gap-1.5 px-4 md:px-0 pb-1" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
-                                            {SUGGESTED_QUESTIONS.slice(0, Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
+                                            {require('./oneri').SUGGESTED_QUESTIONS.slice(0, Math.ceil(require('./oneri').SUGGESTED_QUESTIONS.length / 2)).map((q: string, i: number) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => handleSend(q)}
@@ -412,7 +328,7 @@ export default function ChatPage() {
                                             ))}
                                         </div>
                                         <div className="flex overflow-x-auto no-scrollbar gap-1.5 px-4 md:px-0" onWheel={handleWheel} style={{ scrollbarWidth: 'none' }}>
-                                            {SUGGESTED_QUESTIONS.slice(Math.ceil(SUGGESTED_QUESTIONS.length / 2)).map((q, i) => (
+                                            {require('./oneri').SUGGESTED_QUESTIONS.slice(Math.ceil(require('./oneri').SUGGESTED_QUESTIONS.length / 2)).map((q: string, i: number) => (
                                                 <button
                                                     key={i}
                                                     onClick={() => handleSend(q)}
@@ -433,42 +349,7 @@ export default function ChatPage() {
                     ) : (
                         <div className="space-y-4 max-w-3xl mx-auto relative z-10">
                             {messages.map((msg) => (
-                                <div
-                                    key={msg.id}
-                                    className={`flex ${msg.role === 'user' ? 'justify-end' : (msg.type === 'report' ? 'justify-center w-full' : 'justify-start')}`}
-                                >
-                                    <div
-                                        className={`${msg.type === 'report' ? 'w-full flex justify-center' : 'max-w-[85%]'} ${msg.role === 'user'
-                                            ? 'bg-gray-100 text-gray-900 rounded-2xl rounded-br-sm px-3 py-2'
-                                            : 'bg-transparent text-gray-800 px-0'
-                                            }`}
-                                    >
-                                        {msg.role === 'assistant' && msg.type !== 'report' && (
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <div className="w-5 h-5 flex items-center justify-center">
-                                                    <Image
-                                                        src={icon}
-                                                        alt="AI"
-                                                        className="w-full h-full"
-                                                    />
-                                                </div>
-                                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Derece Koçu</span>
-                                            </div>
-                                        )}
-
-                                        {msg.type === 'report' ? (
-                                            <ReportCard />
-                                        ) : (
-                                            <div className="leading-relaxed text-xs break-words prose prose-sm max-w-none prose-p:my-2 prose-p:leading-relaxed prose-headings:mt-3 prose-headings:mb-2 prose-li:my-1 prose-ul:my-2 prose-ol:my-2">
-                                                {msg.role === 'assistant' ? (
-                                                    <ReactMarkdown>{msg.content}</ReactMarkdown>
-                                                ) : (
-                                                    msg.content
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                <Mesaj key={msg.id} msg={msg} />
                             ))}
                             {isLoading && (
                                 <div className="flex justify-start">
@@ -491,6 +372,7 @@ export default function ChatPage() {
                             <div ref={messagesEndRef} />
                         </div>
                     )}
+                    <div ref={messagesEndRef} />
                 </div>
 
             </div>
@@ -508,161 +390,22 @@ export default function ChatPage() {
                 <div className="max-w-3xl mx-auto relative">
 
                     <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center px-1 py-0.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
-                        <div className="relative" ref={calendarRef}>
-                            {/* Calendar Popover */}
-                            <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${showCalendar ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '240px' }}>
-                                <div className="p-2">
-                                    {/* Week Navigation Header */}
-                                    {(() => {
-                                        const currentWeekDays = getWeekDays(viewDate);
-                                        const today = getLocalISOString();
-                                        const startOfCurrentWeek = getWeekDays(today)[0];
-                                        const startOfViewWeek = currentWeekDays[0];
 
-                                        // Oldest date determines the "start week" we can go back to
-                                        const oldestDate = availableDates.length > 0 ? availableDates[0] : today;
-                                        const startOfOldestWeek = getWeekDays(oldestDate)[0];
-
-                                        // Navigation Logic
-                                        // Can go back only if current view start is after the oldest available week start
-                                        const canGoPrev = new Date(startOfViewWeek) > new Date(startOfOldestWeek);
-
-                                        // Can go next only if current view start is before the real current week start
-                                        const canGoNext = new Date(startOfViewWeek) < new Date(startOfCurrentWeek);
-
-                                        return (
-                                            <div className="flex items-center justify-between mb-3 px-1">
-                                                <button
-                                                    onClick={handlePrevWeek}
-                                                    disabled={!canGoPrev}
-                                                    className={`p-1 rounded-full ${canGoPrev ? 'hover:bg-gray-100 text-gray-500' : 'text-gray-200 cursor-not-allowed'}`}
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </button>
-                                                <div className="text-xs font-bold text-gray-700 uppercase tracking-wide">
-                                                    {formatWeekRange(currentWeekDays)}
-                                                </div>
-                                                <button
-                                                    onClick={handleNextWeek}
-                                                    disabled={!canGoNext}
-                                                    className={`p-1 rounded-full ${canGoNext ? 'hover:bg-gray-100 text-gray-500' : 'text-gray-200 cursor-not-allowed'}`}
-                                                >
-                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    <div className="space-y-1">
-                                        {getWeekDays(viewDate).map((date) => {
-                                            const hasMessages = availableDates.includes(date);
-                                            const isSelected = currentDate === date && !isReportMode;
-                                            const isToday = date === getLocalISOString();
-
-                                            // Lock logic: before first message OR after today
-                                            const oldestDate = availableDates.length > 0 ? availableDates[0] : getLocalISOString();
-                                            const isLocked = new Date(date) < new Date(oldestDate) || new Date(date) > new Date(getLocalISOString());
-
-                                            return (
-                                                <button
-                                                    key={date}
-                                                    onClick={() => !isLocked && handleDateChange(date)}
-                                                    disabled={isLocked}
-                                                    className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isSelected
-                                                        ? 'bg-black text-white'
-                                                        : isLocked
-                                                            ? 'text-gray-300 cursor-not-allowed'
-                                                            : 'text-gray-700 hover:bg-gray-50'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="font-medium">{new Date(date).toLocaleDateString('tr-TR', { weekday: 'long' })}</div>
-                                                        {isToday && <span className="text-[9px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full font-bold">Bugün</span>}
-                                                    </div>
-                                                    <div className={`text-[10px] ${hasMessages ? 'opacity-70' : 'opacity-40'}`}>{new Date(date).toLocaleDateString('tr-TR')}</div>
-                                                </button>
-                                            );
-                                        })}
-
-                                        {/* Weekly Report Button (8th Day) */}
-                                        <div className="pt-1 mt-1 border-t border-gray-50">
-                                            {(() => {
-                                                const currentWeekDays = getWeekDays(viewDate);
-                                                const endOfWeekStr = currentWeekDays[6]; // Sunday "YYYY-MM-DD"
-
-                                                // Set deadline to Sunday 23:00
-                                                const reportAvailableTime = new Date(endOfWeekStr);
-                                                reportAvailableTime.setHours(23, 0, 0, 0);
-
-                                                const now = new Date();
-                                                const isWeekFinished = now >= reportAvailableTime;
-
-                                                // Also, don't show report button if we are in a future week
-                                                const isFutureWeek = new Date(currentWeekDays[0]) > new Date(getWeekDays(getLocalISOString())[0]);
-                                                const isDisabled = !isWeekFinished || isFutureWeek;
-
-                                                // Only show as selected if report is open AND we're viewing the same week
-                                                const isThisWeekReportOpen = isReportMode && reportWeekStart === currentWeekDays[0];
-
-                                                return (
-                                                    <button
-                                                        onClick={handleOpenReport}
-                                                        disabled={isDisabled}
-                                                        title={isDisabled ? "Rapor Pazar günü 23:00'dan sonra görüntülenebilir." : "Haftalık Raporu Görüntüle"}
-                                                        className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-colors flex items-center justify-between ${isThisWeekReportOpen
-                                                            ? 'bg-black text-white'
-                                                            : isDisabled
-                                                                ? 'text-gray-300 cursor-not-allowed'
-                                                                : 'text-gray-700 hover:bg-gray-50'
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="font-medium">Haftalık Rapor</div>
-                                                        </div>
-                                                        {isDisabled ? (
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M12 17V17.01M12 13.5C12 13.5 14 12.5 14 10C14 7.79086 12.2091 6 10 6C8.5 6 7 7 7 8M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        ) : (
-                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                                <path d="M9 17H15M9 13H15M9 9H10M13 3L18.6 8.6C18.8 8.8 19 9.1 19 9.4V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V5C5 3.9 5.9 3 7 3H12.6C12.9 3 13.2 3.2 13.4 3.4L13 3Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                                            </svg>
-                                                        )}
-                                                    </button>
-                                                );
-                                            })()}
-                                        </div>
-                                    </div>
-
-                                    {/* Show "Go to Today" if not in view */}
-                                    {!getWeekDays(viewDate).includes(getLocalISOString()) && (
-                                        <button
-                                            onClick={() => handleDateChange(getLocalISOString())}
-                                            className="w-full mt-2 text-center text-[10px] font-medium text-gray-500 hover:text-black transition-colors border-t border-gray-50 pt-2"
-                                        >
-                                            Bugüne Git
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <button
-                                onClick={() => setShowCalendar(!showCalendar)}
-                                className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showCalendar ? 'bg-gray-200 text-gray-600' : ''}`}
-                                title="Tarih Seç"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <rect x="3" y="4" width="18" height="18" rx="2" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M3 10H21" stroke="currentColor" strokeWidth="2" />
-                                    <path d="M8 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                    <path d="M16 2V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                                </svg>
-                            </button>
-                        </div>
+                        {/* Calendar Popup Component */}
+                        <CalendarPopup
+                            show={showCalendar}
+                            onToggle={() => setShowCalendar(!showCalendar)}
+                            onClose={() => setShowCalendar(false)}
+                            viewDate={viewDate}
+                            setViewDate={setViewDate}
+                            currentDate={currentDate}
+                            onDateChange={handleDateChange}
+                            availableDates={availableDates}
+                            isReportMode={isReportMode}
+                            reportWeekStart={reportWeekStart}
+                            onOpenReport={handleOpenReport}
+                            getLocalISOString={getLocalISOString}
+                        />
 
                         <textarea
                             ref={textareaRef}
@@ -681,38 +424,14 @@ export default function ChatPage() {
                             rows={1}
                         />
 
-                        {/* Suggested Questions Popup */}
-                        {messages.length > 0 && (
-                            <div className="relative" ref={suggestedQuestionsRef}>
-                                <div className={`absolute bottom-full right-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-right ${showSuggestedQuestions ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '200px', maxHeight: '240px' }}>
-                                    <div className="p-2 overflow-y-auto max-h-[240px]">
-                                        <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 px-1">Örnek Sorular</div>
-                                        <div className="space-y-0.5">
-                                            {SUGGESTED_QUESTIONS.map((q, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => {
-                                                        handleSend(q);
-                                                        setShowSuggestedQuestions(false);
-                                                    }}
-                                                    className="w-full text-left px-2 py-1.5 rounded-lg text-[11px] text-gray-700 hover:bg-gray-50 transition-colors"
-                                                >
-                                                    {q}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setShowSuggestedQuestions(!showSuggestedQuestions)}
-                                    className={`p-1 rounded-full transition-all m-0.5 shrink-0 text-gray-400 hover:bg-gray-200 ${showSuggestedQuestions ? 'bg-gray-200 text-gray-600' : ''}`}
-                                    title="Örnek Sorular"
-                                >
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                        <path d="M9 11H15M9 15H15M21 12C21 16.9706 16.9706 21 12 21C10.2 21 3 21 3 21C3 21 3 13.8 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                </button>
-                            </div>
+                        {/* Suggested Questions Popup Component */}
+                        {messages.length > 0 && currentDate === getLocalISOString() && !isReportMode && (
+                            <SuggestedQuestions
+                                show={showSuggestedQuestions}
+                                onToggle={() => setShowSuggestedQuestions(!showSuggestedQuestions)}
+                                onSelect={handleSend}
+                                onClose={() => setShowSuggestedQuestions(false)}
+                            />
                         )}
 
                         <button

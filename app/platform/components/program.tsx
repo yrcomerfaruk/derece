@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase, authHelpers } from '@/lib/supabase';
-
+import ProgramAssistant from './asistan';
+import Baslik from './baslik';
+import Cizelge from './cizelge';
 
 interface ProgramItem {
     id: string;
@@ -25,6 +27,11 @@ interface DaySchedule {
     items: ProgramItem[];
 }
 
+interface ChatMessage {
+    role: 'user' | 'assistant';
+    content: string;
+}
+
 export default function ProgramPage() {
     const [loading, setLoading] = useState(true);
 
@@ -43,7 +50,7 @@ export default function ProgramPage() {
     });
 
     // Chat State
-    const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
     // Load Chat History
     useEffect(() => {
@@ -79,10 +86,9 @@ export default function ProgramPage() {
         const { user } = await authHelpers.getUser();
         if (!user) return;
 
-        // 1. Calculate Week Dates Locally (No API call)
-        // Helper inline for now or defined outside. Let's define it inside to be safe with closurescope if needed, or better, just executing logic.
+        // 1. Calculate Week Dates Locally
         const d = new Date(dateRef);
-        // Normalize to noon to avoid DST/midnight shifts affecting the date
+        // Normalize to noon
         d.setHours(12, 0, 0, 0);
 
         const day = d.getDay(); // 0=Sun
@@ -126,7 +132,6 @@ export default function ProgramPage() {
                 if (programs.start_date) setProgramStartDate(new Date(programs.start_date));
             } else {
                 setHasProgram(false);
-                // Continue to render empty schedule
             }
         }
 
@@ -164,7 +169,7 @@ export default function ProgramPage() {
             });
             setSchedule(days);
         } else {
-            // No Program -> Create Empty Schedule structure so calendar still renders
+            // No Program -> Create Empty Schedule structure
             setHasProgram(false);
             const days: DaySchedule[] = weekDayOrder.map((dayName, idx) => {
                 const targetDateStr = weekDates[idx].date;
@@ -185,7 +190,7 @@ export default function ProgramPage() {
         fetchProgram();
     }, []);
 
-    // Auto-refresh at midnight to update to new day
+    // Auto-refresh at midnight
     useEffect(() => {
         const checkMidnight = () => {
             const now = new Date();
@@ -205,14 +210,28 @@ export default function ProgramPage() {
             }
         };
 
-        // Check every minute
         const interval = setInterval(checkMidnight, 60000);
         return () => clearInterval(interval);
     }, [selectedIndex]);
 
 
+    // Handlers extracted for cleaner passing to Baslik/Cizelge
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-    const handleToggleComplete = async (itemId: string, currentStatus: boolean) => {
+    const showToast = (message: string) => {
+        setToastMessage(message);
+        setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    const handleToggleComplete = async (itemId: string, currentStatus: boolean, date: string) => {
+        // Date check
+        const today = new Date().toLocaleDateString('en-CA');
+        if (date !== today) {
+            showToast('Geçmiş veya gelecek günlerin programına müdahale edemezsin.');
+            return;
+        }
+
         // Optimistic update
         const updatedSchedule = schedule.map(day => ({
             ...day,
@@ -241,7 +260,7 @@ export default function ProgramPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: userText,
-                    chatHistory: chatMessages.slice(-6) // Context
+                    chatHistory: chatMessages.slice(-6)
                 })
             });
 
@@ -252,7 +271,6 @@ export default function ProgramPage() {
                 setChatMessages(prev => [...prev, { role: 'assistant', content: 'Üzgünüm, bir hata oluştu: ' + data.error }]);
             } else {
                 setChatMessages(prev => [...prev, { role: 'assistant', content: data.content }]);
-                // Refresh program without full loading spinner (background fade only)
                 await fetchProgram(currentDate, false);
             }
         } catch (error) {
@@ -263,66 +281,34 @@ export default function ProgramPage() {
         }
     };
 
-    // Dynamic Time Calculation
-    // slotIndex artık gece yarısından itibaren toplam dakika (7:15 = 435 dakika)
-    const getSlotMetrics = (slotIndex: number, durationMinutes: number = 50) => {
-        // slotIndex = gece yarısından itibaren toplam dakika
-        const startHour = Math.floor(slotIndex / 60);
-        const startMinute = slotIndex % 60;
-
-        // Saat 6'dan itibaren pozisyon hesapla (timeline 6:00'dan başlıyor)
-        const startFrom6 = slotIndex - (6 * 60); // 6:00 = 360 dakika
-        const height = durationMinutes;
-
-        // Zaman etiketi oluştur
-        const endTotalMin = slotIndex + durationMinutes;
-        const endHour = Math.floor(endTotalMin / 60);
-        const endMinute = endTotalMin % 60;
-
-        const timeLabel = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')} - ${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
-
-        return {
-            top: startFrom6, // 1px = 1min
-            height: height,
-            timeLabel
-        };
+    // Navigation Handlers
+    const handlePrevWeek = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() - 7);
+        const today = new Date();
+        if (newDate.getMonth() !== today.getMonth()) {
+            showToast("Sadece bu ayın programını görüntüleyebilirsin.");
+            return;
+        }
+        if (programStartDate && newDate.getTime() < programStartDate.getTime() - (6 * 86400000)) {
+            showToast("Program başlangıcından önceki haftalara gidemezsin.");
+            return;
+        }
+        setCurrentDate(newDate);
+        fetchProgram(newDate, false);
     };
 
-    const [isChatOpen, setIsChatOpen] = useState(false);
-    const [toastMessage, setToastMessage] = useState<string | null>(null);
-    const chatEndRef = useRef<HTMLDivElement>(null);
-    const chatPopupRef = useRef<HTMLDivElement>(null);
-    const fabRef = useRef<HTMLButtonElement>(null);
-
-    const showToast = (message: string) => {
-        setToastMessage(message);
-        setTimeout(() => setToastMessage(null), 3000);
+    const handleNextWeek = () => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(newDate.getDate() + 7);
+        const today = new Date();
+        if (newDate.getMonth() !== today.getMonth() && newDate > today) {
+            showToast("Sadece bu ayın programını görüntüleyebilirsin.");
+            return;
+        }
+        setCurrentDate(newDate);
+        fetchProgram(newDate, false);
     };
-
-    // Click outside handler
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            // ... (rest of logic same)
-            if (isChatOpen &&
-                chatPopupRef.current && !chatPopupRef.current.contains(event.target as Node) &&
-                fabRef.current && !fabRef.current.contains(event.target as Node)
-            ) {
-                setIsChatOpen(false);
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isChatOpen]);
-
-    useEffect(() => {
-        if (isChatOpen) {
-            chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        }
-    }, [chatMessages, isChatOpen]);
-
-    // ... existing fetch loops ...
 
     if (loading) return (
         <div className="h-full flex items-center justify-center">
@@ -333,278 +319,44 @@ export default function ProgramPage() {
         </div>
     );
 
-
-
     const daySchedule = schedule[selectedIndex];
 
     return (
         <div className="h-full bg-white relative overflow-hidden">
             {/* SCHEDULE VIEW (Full Height) */}
-            <div className={`h-full flex flex-col bg-white overflow-hidden transition-opacity duration-300 ${isSwitchingWeek ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-                {/* Day Header */}
-                <div className="shrink-0 bg-transparent z-10 border-b border-gray-100">
-                    <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
-                        {/* Left Controls */}
-                        <div className="flex items-center gap-2">
-                            {/* Week Previous */}
-                            <button
-                                onClick={() => {
-                                    const newDate = new Date(currentDate);
-                                    newDate.setDate(newDate.getDate() - 7);
+            <div className={`h-full flex flex-col bg-white overflow-hidden`}>
 
-                                    // Limit: Only show days within THIS month
-                                    const today = new Date();
-                                    if (newDate.getMonth() !== today.getMonth()) {
-                                        showToast("Sadece bu ayın programını görüntüleyebilirsin.");
-                                        return;
-                                    }
+                {/* Header Component */}
+                <Baslik
+                    daySchedule={daySchedule}
+                    onPrevWeek={handlePrevWeek}
+                    onNextWeek={handleNextWeek}
+                    onPrevDay={() => setSelectedIndex(prev => Math.max(0, prev - 1))}
+                    onNextDay={() => setSelectedIndex(prev => Math.min(schedule.length - 1, prev + 1))}
+                    hasPrevDay={selectedIndex > 0}
+                    hasNextDay={selectedIndex < schedule.length - 1}
+                />
 
-                                    // Limit: Don't go before program start date
-                                    if (programStartDate) {
-                                        // Simple check: if newDate is more than 6 days BEFORE start date
-                                        if (newDate.getTime() < programStartDate.getTime() - (6 * 86400000)) {
-                                            showToast("Program başlangıcından önceki haftalara gidemezsin.");
-                                            return;
-                                        }
-                                    }
-
-                                    setCurrentDate(newDate);
-                                    fetchProgram(newDate, false);
-                                }}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
-                                title="Önceki Hafta"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5" />
-                                </svg>
-                            </button>
-
-                            {/* Day Previous */}
-                            <button
-                                onClick={() => setSelectedIndex(prev => Math.max(0, prev - 1))}
-                                disabled={selectedIndex === 0}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-all"
-                                title="Önceki Gün"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M15 18l-6-6 6-6" />
-                                </svg>
-                            </button>
-                        </div>
-
-                        {/* Center Info */}
-                        <div className="flex flex-col items-center">
-                            <span className="font-bold text-gray-900 tracking-tight" style={{ fontSize: '14px' }}>
-                                {daySchedule?.day}
-                            </span>
-                            <span className="font-medium text-gray-400" style={{ fontSize: '12px' }}>
-                                {daySchedule?.date
-                                    ? new Date(daySchedule.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-                                    : new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-                                }
-                            </span>
-                        </div>
-
-                        {/* Right Controls */}
-                        <div className="flex items-center gap-2">
-                            {/* Day Next */}
-                            <button
-                                onClick={() => setSelectedIndex(prev => Math.min(schedule.length - 1, prev + 1))}
-                                disabled={selectedIndex === schedule.length - 1}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-all"
-                                title="Sonraki Gün"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M9 18l6-6-6-6" />
-                                </svg>
-                            </button>
-
-                            {/* Week Next */}
-                            <button
-                                onClick={() => {
-                                    const newDate = new Date(currentDate);
-                                    newDate.setDate(newDate.getDate() + 7);
-
-                                    // Limit: Only show days within THIS month (User request)
-                                    // Actually just checking if month changed relative to TODAY
-                                    const today = new Date();
-                                    // If new week starts in a different month than today AND is in future
-                                    if (newDate.getMonth() !== today.getMonth() && newDate > today) {
-                                        // Allow if it's just the end of the month overlap?
-                                        // User said "sadece bu ayın günlerini göster". Strict check.
-                                        showToast("Sadece bu ayın programını görüntüleyebilirsin.");
-                                        return;
-                                    }
-
-                                    setCurrentDate(newDate);
-                                    fetchProgram(newDate, false);
-                                }}
-                                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-50 text-gray-600 hover:bg-gray-100 transition-all"
-                                title="Sonraki Hafta"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M13 17l5-5-5-5M6 17l5-5-5-5" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Timeline */}
-                <div className="flex-1 overflow-y-auto no-scrollbar relative w-full">
-                    <div className="relative min-h-[1140px] max-w-3xl mx-auto pt-4 pb-20">
-
-                        {/* Time Markers - Gray Background */}
-                        <div className="absolute left-0 top-0 bottom-0 w-16 z-10 bg-gray-50 border-r border-gray-100 h-full">
-                            {Array.from({ length: 19 }).map((_, i) => (
-                                <div key={i} className="absolute w-full text-center text-[11px] text-gray-400 font-medium" style={{ top: `${(i * 60) + 10}px` }}>
-                                    {String(6 + i).padStart(2, '0')}:00
-                                </div>
-                            ))}
-                        </div>
-
-                        {/* Grid Lines */}
-                        <div className="absolute left-16 right-0 top-0 bottom-0">
-                            {Array.from({ length: 19 }).map((_, i) => (
-                                <div key={i} className="absolute w-full border-t border-gray-100 border-dashed" style={{ top: `${(i * 60) + 20}px` }}></div>
-                            ))}
-                        </div>
-
-                        {/* Items */}
-                        <div className="absolute left-16 right-0 top-0 bottom-0">
-                            {daySchedule?.items.map((item) => {
-                                const metrics = getSlotMetrics(item.slot_index, item.duration_minutes);
-
-                                return (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => {
-                                            const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local time
-                                            if (daySchedule.date !== today) {
-                                                showToast('Geçmiş veya gelecek günlerin programına müdahale edemezsin.');
-                                                return;
-                                            }
-                                            handleToggleComplete(item.id, item.is_completed);
-                                        }}
-                                        className={`absolute left-2 right-4 rounded-xl border flex items-center px-4 cursor-pointer transition-all z-20
-                                            ${item.is_completed
-                                                ? 'bg-gray-50 border-gray-100 opacity-60'
-                                                : 'bg-white border-gray-100 shadow-sm border-l-4 border-l-black'
-                                            }`}
-                                        style={{
-                                            top: `${metrics.top + 20}px`,
-                                            height: `${metrics.height}px`
-                                        }}
-                                    >
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-gray-100 text-gray-600">
-                                                    {item.activity_type === 'study' ? 'Konu' : item.activity_type === 'test' ? 'Test' : 'Tekrar'}
-                                                </span>
-                                                <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
-                                                    {metrics.timeLabel}
-                                                </span>
-                                            </div>
-                                            <h4 className={`text-sm font-semibold text-gray-900 ${item.is_completed ? 'line-through text-gray-400' : ''} truncate`}>
-                                                {/* @ts-ignore */}
-                                                {item.topic ? `${item.topic.subject} - ${item.topic.title}` : 'Ders'}
-                                            </h4>
-                                        </div>
-
-                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 ${item.is_completed ? 'bg-black text-white' : 'bg-gray-100 text-gray-300'}`}>
-                                            {item.is_completed && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4"><polyline points="20 6 9 17 4 12"></polyline></svg>}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
+                {/* Timeline Component */}
+                <Cizelge
+                    items={daySchedule?.items}
+                    isSwitchingWeek={isSwitchingWeek}
+                    date={daySchedule?.date}
+                    onToggleComplete={handleToggleComplete}
+                />
             </div>
 
-            {/* CHAT POPUP */}
-            {
-                isChatOpen && (
-                    <div
-                        ref={chatPopupRef}
-                        className="fixed bottom-20 right-6 w-full max-w-[300px] h-[400px] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-100 animate-in slide-in-from-bottom-5 fade-in duration-200 z-50"
-                    >
-                        {/* Header */}
-                        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between bg-white bg-opacity-90 backdrop-blur">
-                            <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                                <span className="text-sm font-bold text-gray-800">Program Asistanı</span>
-                            </div>
-                        </div>
-
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/50">
-                            {chatMessages.map((msg, i) => (
-                                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] px-3 py-2 rounded-xl text-xs ${msg.role === 'user' ? 'bg-black text-white rounded-br-none' : 'bg-white border border-gray-200 text-gray-700 rounded-bl-none shadow-sm'
-                                        }`}>
-                                        {msg.content}
-                                    </div>
-                                </div>
-                            ))}
-                            {isChatLoading && (
-                                <div className="flex justify-start animate-pulse">
-                                    <div className="max-w-[85%] px-3 py-2 rounded-xl text-xs bg-white border border-gray-200 text-gray-500 rounded-bl-none shadow-sm flex items-center gap-1">
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span className="w-1 h-1 bg-gray-400 rounded-full animate-bounce"></span>
-                                    </div>
-                                </div>
-                            )}
-                            <div ref={chatEndRef} />
-                        </div>
-
-                        {/* Input */}
-                        {/* Input */}
-                        <div className="p-2 bg-white border-t border-gray-100">
-                            <div className="bg-gray-50 border border-gray-200 rounded-3xl flex items-center px-1 py-0.5 shadow-sm transition-all focus-within:ring-1 focus-within:ring-gray-200 min-h-[32px]">
-                                <input
-                                    type="text"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && !isChatLoading && handleChatSend()}
-                                    placeholder="Değişiklik yap..."
-                                    className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none py-0 px-2 text-gray-700 placeholder-gray-400 text-sm"
-                                    disabled={isChatLoading}
-                                />
-                                <button
-                                    onClick={handleChatSend}
-                                    disabled={!chatInput.trim() || isChatLoading}
-                                    className={`w-7 h-7 flex items-center justify-center rounded-full transition-all shrink-0 m-0.5 ${chatInput.trim() && !isChatLoading
-                                        ? 'bg-black text-white hover:bg-gray-800'
-                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                >
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M5 12h14M12 5l7 7-7 7" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )
-            }
-
-            {/* FLOATING ACTION BUTTON */}
-            <button
-                ref={fabRef}
-                onClick={() => setIsChatOpen(prev => !prev)}
-                className="fixed bottom-6 right-6 w-10 h-10 bg-black text-white rounded-full shadow-xl flex items-center justify-center z-50"
-            >
-                {isChatOpen ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                ) : (
-                    <>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
-                    </>
-                )}
-            </button>
+            {/* PROGRAM ASSISTANT (POPUP) */}
+            <ProgramAssistant
+                isOpen={isChatOpen}
+                onToggle={() => setIsChatOpen(prev => !prev)}
+                messages={chatMessages}
+                input={chatInput}
+                setInput={setChatInput}
+                onSend={handleChatSend}
+                isLoading={isChatLoading}
+                onClose={() => setIsChatOpen(false)}
+            />
 
             {/* TOAST MESSAGE */}
             {
@@ -617,5 +369,3 @@ export default function ProgramPage() {
         </div >
     );
 }
-
-
