@@ -8,6 +8,7 @@ interface BaslikProps {
     onNextDay: () => void;
     hasPrevDay: boolean;
     hasNextDay: boolean;
+    isSwitchingWeek: boolean;
 }
 
 export default function Baslik({
@@ -17,10 +18,11 @@ export default function Baslik({
     onPrevDay,
     onNextDay,
     hasPrevDay,
-    hasNextDay
+    hasNextDay,
+    isSwitchingWeek
 }: BaslikProps) {
     return (
-        <div className="shrink-0 bg-transparent z-10 border-b border-gray-100">
+        <div className={`shrink-0 bg-transparent z-10 border-b border-gray-100 transition-opacity duration-300 ${isSwitchingWeek ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
             <div className="max-w-3xl mx-auto flex items-center justify-between px-4 py-3">
                 {/* Left Controls */}
                 <div className="flex items-center gap-2">

@@ -335,6 +335,7 @@ export default function ProgramPage() {
                     onNextDay={() => setSelectedIndex(prev => Math.min(schedule.length - 1, prev + 1))}
                     hasPrevDay={selectedIndex > 0}
                     hasNextDay={selectedIndex < schedule.length - 1}
+                    isSwitchingWeek={isSwitchingWeek}
                 />
 
                 {/* Timeline Component */}
