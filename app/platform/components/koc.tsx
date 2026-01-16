@@ -13,6 +13,7 @@ interface Message {
     role: 'user' | 'assistant';
     content: string;
     type?: 'text' | 'report';
+    reportDate?: string;
 }
 
 export default function ChatPage() {
@@ -146,7 +147,7 @@ export default function ChatPage() {
     useEffect(() => {
         const fetchDates = async () => {
             try {
-                const res = await fetch('/platform/api/chat/dates');
+                const res = await fetch('/platform/api/dates');
                 if (res.ok) {
                     const data = await res.json();
                     const sortedDates = (data.dates || []).sort();
@@ -250,7 +251,8 @@ export default function ChatPage() {
     const handleOpenReport = async () => {
         if (isLoading) return;
         setIsReportMode(true);
-        setReportWeekStart(getWeekDays(viewDate)[0]); // Save which week's report we're viewing
+        const currentWeekStart = getWeekDays(viewDate)[0];
+        setReportWeekStart(currentWeekStart);
         setShowCalendar(false);
         setMessages([]); // Clear chat for report view
         setIsLoading(true);
@@ -262,7 +264,8 @@ export default function ChatPage() {
             id: Date.now().toString(),
             role: 'assistant',
             content: '',
-            type: 'report'
+            type: 'report',
+            reportDate: currentWeekStart
         }]);
         setIsLoading(false);
     };
@@ -301,7 +304,7 @@ export default function ChatPage() {
                         </div>
                     ) : isReportMode ? (
                         <div className="h-full flex items-center justify-center relative z-10 w-full max-w-3xl mx-auto">
-                            <Mesaj msg={{ id: 'report-view', role: 'assistant', content: '', type: 'report' }} />
+                            <Mesaj msg={{ id: 'report-view', role: 'assistant', content: '', type: 'report', reportDate: reportWeekStart || undefined }} />
                         </div>
                     ) : messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-8 animate-fade-in relative z-10">

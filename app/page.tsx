@@ -11,7 +11,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-[50px]">
             <div className="flex items-center">
-              <Image src="/logo.png" alt="Derece AI" width={0} height={25} className="h-[25px] w-auto" priority unoptimized />
+              <Image src="/logo.png" alt="Derece AI" width={0} height={20} className="h-[20px] w-auto" priority unoptimized />
             </div>
             <div className="flex items-center gap-4">
               <Link href="/auth?tab=giris">

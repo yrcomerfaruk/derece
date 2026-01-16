@@ -42,41 +42,42 @@ export default function PlatformPage() {
 
     return (
         <div className="fixed inset-0 flex flex-col bg-white overflow-hidden">
-            {/* Header */}
-            <div className="flex-none flex items-center justify-between px-3 md:px-20 h-[50px] border-b border-gray-100 bg-white z-20">
-                <div className="flex items-center">
-                    <Image src="/logo.png" alt="Derece AI" width={0} height={18} className="h-[18px] w-auto" priority unoptimized />
-                </div>
-                <div className="flex items-center" style={{ gap: '7px' }}>
-                    <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
+            <div className="flex-none h-[50px] border-b border-gray-100 bg-white z-20 w-full">
+                <div className="w-full h-full flex items-center justify-between px-4 md:px-8">
+                    <div className="flex items-center">
+                        <Image src="/logo.png" alt="Derece AI" width={0} height={15} className="h-[15px] w-auto" priority unoptimized />
+                    </div>
+                    <div className="flex items-center" style={{ gap: '7px' }}>
+                        <div className="bg-gray-100/50 p-0.5 rounded-full flex relative">
+                            <button
+                                onClick={() => setActiveTab('koc')}
+                                className={`px-2 py-0.75 rounded-full text-[11px] font-bold transition-all duration-200 z-10 ${activeTab === 'koc'
+                                    ? 'bg-white text-black shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                Koç
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('program')}
+                                className={`px-3 py-0.5 rounded-full text-[11px] font-bold transition-all duration-200 z-10 ${activeTab === 'program'
+                                    ? 'bg-white text-black shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                            >
+                                Program
+                            </button>
+                        </div>
                         <button
-                            onClick={() => setActiveTab('koc')}
-                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all duration-200 z-10 ${activeTab === 'koc'
-                                ? 'bg-white text-black shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
+                            onClick={handleSignOut}
+                            className="w-7 h-6 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                            title="Çıkış Yap"
                         >
-                            Koç
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('program')}
-                            className={`px-3 py-1 rounded-full text-[11px] font-bold transition-all duration-200 z-10 ${activeTab === 'program'
-                                ? 'bg-white text-black shadow-sm'
-                                : 'text-gray-500 hover:text-gray-700'
-                                }`}
-                        >
-                            Program
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
                         </button>
                     </div>
-                    <button
-                        onClick={handleSignOut}
-                        className="w-7 h-6 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-                        title="Çıkış Yap"
-                    >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </button>
                 </div>
             </div>
 

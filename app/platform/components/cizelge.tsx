@@ -43,6 +43,17 @@ export default function Cizelge({ items, isSwitchingWeek, date, onToggleComplete
         };
     };
 
+    // Helper to get today's date in YYYY-MM-DD local time
+    const getTodayString = () => {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    const isToday = date === getTodayString();
+
     return (
         <div className={`flex-1 overflow-y-auto no-scrollbar relative w-full transition-opacity duration-300 ${isSwitchingWeek ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
             <div className="relative min-h-[1140px] max-w-3xl mx-auto pt-4 pb-20">
@@ -84,14 +95,14 @@ export default function Cizelge({ items, isSwitchingWeek, date, onToggleComplete
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-gray-100 text-gray-600">
+                                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-gray-100 text-gray-600">
                                             {item.activity_type === 'study' ? 'Konu' : item.activity_type === 'test' ? 'Test' : 'Tekrar'}
                                         </span>
-                                        <span className="text-[10px] text-gray-400 font-medium whitespace-nowrap">
+                                        <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">
                                             {metrics.timeLabel}
                                         </span>
                                     </div>
-                                    <h4 className={`text-sm font-semibold text-gray-900 ${item.is_completed ? 'line-through text-gray-400' : ''} truncate`}>
+                                    <h4 className={`text-[12px] font-semibold text-gray-900 ${item.is_completed ? (isToday ? 'line-through text-gray-400' : 'text-gray-400') : ''} truncate`}>
                                         {/* @ts-ignore */}
                                         {item.topic ? `${item.topic.subject} - ${item.topic.title}` : 'Ders'}
                                     </h4>

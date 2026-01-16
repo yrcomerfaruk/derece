@@ -56,7 +56,7 @@ export default function ProgramPage() {
     useEffect(() => {
         const loadHistory = async () => {
             try {
-                const res = await fetch('/platform/api/program');
+                const res = await fetch('/platform/api/program-assistant');
                 if (res.ok) {
                     const data = await res.json();
                     if (data.messages && data.messages.length > 0) {
@@ -255,7 +255,7 @@ export default function ProgramPage() {
         setIsChatLoading(true);
 
         try {
-            const response = await fetch('/platform/api/program', {
+            const response = await fetch('/platform/api/program-assistant', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

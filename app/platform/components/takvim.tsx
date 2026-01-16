@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 // Calendar Helpers (duplicated here to keep component self-contained or exported from a utils file if preferred)
 const getWeekDays = (dateStr: string) => {
@@ -55,6 +55,7 @@ export default function CalendarPopup({
     getLocalISOString
 }: CalendarPopupProps) {
     const calendarRef = useRef<HTMLDivElement>(null);
+    const [direction, setDirection] = useState<'left' | 'right' | null>(null);
 
     // Click outside handler
     useEffect(() => {
@@ -71,12 +72,14 @@ export default function CalendarPopup({
     }, [show, onClose]);
 
     const handlePrevWeek = () => {
+        setDirection('left');
         const date = new Date(viewDate);
         date.setDate(date.getDate() - 7);
         setViewDate(date.toISOString().split('T')[0]);
     };
 
     const handleNextWeek = () => {
+        setDirection('right');
         const date = new Date(viewDate);
         date.setDate(date.getDate() + 7);
         setViewDate(date.toISOString().split('T')[0]);
@@ -85,7 +88,7 @@ export default function CalendarPopup({
     return (
         <div className="relative" ref={calendarRef}>
             {/* Calendar Popover */}
-            <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 origin-bottom-left ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '240px' }}>
+            <div className={`absolute bottom-full left-0 mb-3 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transition-all duration-300 ease-out origin-bottom-left ${show ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-2 pointer-events-none'}`} style={{ width: '240px' }}>
                 <div className="p-2">
                     {/* Week Navigation Header */}
                     {(() => {
@@ -129,7 +132,7 @@ export default function CalendarPopup({
                         );
                     })()}
 
-                    <div className="space-y-1">
+                    <div key={viewDate} className={`space-y-1 ${direction === 'right' ? 'animate-slide-in-right' : direction === 'left' ? 'animate-slide-in-left' : ''}`}>
                         {getWeekDays(viewDate).map((date) => {
                             const hasMessages = availableDates.includes(date);
                             const isSelected = currentDate === date && !isReportMode;
