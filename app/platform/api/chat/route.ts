@@ -30,6 +30,11 @@ async function getTodaysProgramSummary(userId: string, date: string, supabase: a
 
         if (!items || items.length === 0) return "Bugün için planlanmış bir ders yok.";
 
+        // Calculate current time explicitly for summary
+        const now = new Date();
+        const nowIstanbul = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+        const currentTotalMins = nowIstanbul.getHours() * 60 + nowIstanbul.getMinutes();
+
         const summary = items.map((item: any) => {
             const startMin = item.slot_index;
             const endMin = startMin + item.duration_minutes;
@@ -39,7 +44,16 @@ async function getTodaysProgramSummary(userId: string, date: string, supabase: a
             const endM = endMin % 60;
 
             const timeStr = `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')} - ${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
-            const statusStr = item.is_completed ? "✅ [BİTTİ]" : "⭕ [BEKLİYOR]";
+
+            let statusStr = item.is_completed ? "✅ [BİTTİ]" : "⭕ [BEKLİYOR]";
+
+            // Mark as MISSED if time passed and not completed
+            if (!item.is_completed && endMin < currentTotalMins) {
+                statusStr = "❌ [YAPILMADI/KAÇIRILDI]";
+            } else if (!item.is_completed && startMin <= currentTotalMins && endMin > currentTotalMins) {
+                statusStr = "⏳ [ŞU AN OLMASI GEREKEN DERS]";
+            }
+
             return `- ${timeStr}: ${statusStr} ${item.topic?.subject} (${item.topic?.title})`;
         }).join('\n');
 
@@ -90,7 +104,12 @@ export async function POST(req: NextRequest) {
         // 4. Generate AI Response
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
-        const finalSystemInstruction = getChatPrompt(programContext);
+        // Calculate Time for Prompt
+        const now = new Date();
+        const nowIstanbul = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Istanbul" }));
+        const timeStr = `${String(nowIstanbul.getHours()).padStart(2, '0')}:${String(nowIstanbul.getMinutes()).padStart(2, '0')}`;
+
+        const finalSystemInstruction = getChatPrompt(programContext, timeStr);
 
         const chat = model.startChat({
             history: [
