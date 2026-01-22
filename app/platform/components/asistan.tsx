@@ -151,7 +151,7 @@ export default function ProgramAssistant({
             {isOpen && (
                 <div
                     ref={chatPopupRef}
-                    className="fixed bottom-0 top-[56px] right-0 w-[85%] max-w-[350px] bg-white z-50 flex flex-col animate-in slide-in-from-right duration-300 border-l border-gray-100 rounded-none lg:hidden"
+                    className="fixed bottom-0 top-[50px] left-0 right-0 bg-white z-[100] flex flex-col animate-in slide-in-from-right duration-300 border-t border-gray-100 rounded-none lg:hidden"
                 >
                     {/* Header */}
                     <div className="px-4 py-2 border-b border-gray-100 flex items-center justify-between bg-white">
@@ -194,15 +194,15 @@ export default function ProgramAssistant({
                     </div>
 
                     {/* Input */}
-                    <div className="p-3 bg-white border-t border-gray-100 safe-area-bottom">
-                        <div className="bg-gray-50 border border-gray-200 rounded-[20px] flex items-center px-1.5 py-1 shadow-sm transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-black/5">
+                    <div className="p-2 bg-white border-t border-gray-100 safe-area-bottom">
+                        <div className="bg-gray-50 border border-gray-200 rounded-[20px] flex items-center px-1.5 py-0.5 shadow-sm transition-all focus-within:bg-white focus-within:ring-2 focus-within:ring-black/5">
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && !isLoading && onSend()}
                                 placeholder="Bir şeyler yaz..."
-                                className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none py-1.5 px-2 text-gray-700 placeholder-gray-400 text-sm"
+                                className="flex-1 bg-transparent border-none focus:ring-0 focus:outline-none py-1 px-2 text-gray-700 placeholder-gray-400 text-sm"
                                 disabled={isLoading}
                             />
                             <button
