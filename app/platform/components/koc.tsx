@@ -316,10 +316,7 @@ export default function ChatPage() {
                                             Merhaba, Koçun Burada!
                                         </h2>
                                         <p className="text-gray-500 text-sm font-medium">Sana nasıl yardımcı olabilirim?</p>
-                                        <div className="flex items-center justify-center gap-1.5 opacity-40 mt-1">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                                            <p className="text-[10px] uppercase tracking-wider font-semibold text-gray-400">Gemini 2.5 Pro</p>
-                                        </div>
+
                                     </div>
 
                                     <div className="w-full max-w-3xl mx-auto space-y-2 overflow-hidden relative z-10">

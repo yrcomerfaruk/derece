@@ -36,6 +36,14 @@ export const tools = [
                         activityType: {
                             type: SchemaType.STRING,
                             description: "Type: 'study' (default), 'test' (soru çözümü), 'review' (tekrar)."
+                        },
+                        teacher: {
+                            type: SchemaType.STRING,
+                            description: "Optional: Teacher/Channel name (e.g. 'Mert Hoca', 'Eyüp B', 'VIP Fizik')."
+                        },
+                        resource: {
+                            type: SchemaType.STRING,
+                            description: "Optional: Book/Resource name (e.g. '345', 'Orijinal', 'Apotemi', 'MEB Kitabı')."
                         }
                     },
                     required: ["day", "startTime", "endTime", "subject", "topicName"]
@@ -110,7 +118,7 @@ export const tools = [
 ];
 
 export async function executeAddSession(userId: string, args: any, supabase: any) {
-    const { day, startTime, endTime, subject, topicName, activityType = 'study' } = args;
+    const { day, startTime, endTime, subject, topicName, activityType = 'study', teacher, resource } = args;
 
     const parseTime = (timeStr: string) => {
         const [hours, minutes] = timeStr.split(':').map(Number);
@@ -220,6 +228,51 @@ export async function executeAddSession(userId: string, args: any, supabase: any
         topicId = newTopic.id;
     }
 
+    // TEACHER & RESOURCE LOGIC
+    let teacherId = null;
+    let resourceId = null;
+
+    if (teacher) {
+        const { data: existingTeachers } = await supabase
+            .from('teachers')
+            .select('id')
+            .eq('user_id', userId)
+            .ilike('name', teacher)
+            .limit(1);
+
+        if (existingTeachers && existingTeachers.length > 0) {
+            teacherId = existingTeachers[0].id;
+        } else {
+            const { data: newTeacher } = await supabase
+                .from('teachers')
+                .insert({ user_id: userId, name: teacher, subject: cleanSubject })
+                .select('id')
+                .single();
+            if (newTeacher) teacherId = newTeacher.id;
+        }
+    }
+
+    if (resource) {
+        const { data: existingResources } = await supabase
+            .from('resources')
+            .select('id')
+            .eq('user_id', userId)
+            .ilike('title', resource)
+            .limit(1);
+
+        if (existingResources && existingResources.length > 0) {
+            resourceId = existingResources[0].id;
+        } else {
+            const { data: newResource } = await supabase
+                .from('resources')
+                .insert({ user_id: userId, title: resource, type: 'book', subject: cleanSubject })
+                .select('id')
+                .single();
+            if (newResource) resourceId = newResource.id;
+        }
+    }
+
+
     // CHECK FOR OVERLAPS
     const slotIndex = start.totalMinutes;
     const durationMinutes = end.totalMinutes - start.totalMinutes;
@@ -254,7 +307,9 @@ export async function executeAddSession(userId: string, args: any, supabase: any
         topic_id: topicId,
         session_date: sessionDateStr,
         activity_type: activityType,
-        duration_minutes: durationMinutes
+        duration_minutes: durationMinutes,
+        teacher_id: teacherId,
+        resource_id: resourceId
     });
 
     if (error) {
@@ -262,9 +317,14 @@ export async function executeAddSession(userId: string, args: any, supabase: any
         return { success: false, message: "Ders programa eklenirken teknik bir hata oluştu." };
     }
 
+    const extraInfo = [];
+    if (teacherId) extraInfo.push(`${teacher} ile`);
+    if (resourceId) extraInfo.push(`${resource} kaynağından`);
+    const extraStr = extraInfo.length > 0 ? ` (${extraInfo.join(', ')})` : '';
+
     return {
         success: true,
-        message: `${WEEK_DAYS[targetDayIndex]} (${new Date(sessionDateStr).toLocaleDateString('tr-TR')}) günü ${startTime}-${endTime} arasına "${subject} - ${topicName}" başarıyla eklendi.`
+        message: `${WEEK_DAYS[targetDayIndex]} (${new Date(sessionDateStr).toLocaleDateString('tr-TR')}) günü ${startTime}-${endTime} arasına "${subject} - ${topicName}"${extraStr} başarıyla eklendi.`
     };
 }
 

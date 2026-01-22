@@ -10,6 +10,12 @@ interface ProgramItem {
         subject: string;
         title: string;
     };
+    teacher?: {
+        name: string;
+    };
+    resource?: {
+        title: string;
+    };
 }
 
 interface CizelgeProps {
@@ -56,7 +62,7 @@ export default function Cizelge({ items, isSwitchingWeek, date, onToggleComplete
 
     return (
         <div className={`flex-1 overflow-y-auto no-scrollbar relative w-full transition-opacity duration-300 ${isSwitchingWeek ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-            <div className="relative min-h-[1140px] max-w-3xl mx-auto pt-4 pb-20">
+            <div className="relative min-h-[1140px] w-full pt-4 pb-20">
 
                 {/* Time Markers - Gray Background */}
                 <div className="absolute left-0 top-0 bottom-0 w-16 z-10 bg-gray-50 border-r border-gray-100 h-full">
@@ -95,7 +101,7 @@ export default function Cizelge({ items, isSwitchingWeek, date, onToggleComplete
                             >
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
-                                        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider bg-gray-100 text-gray-600">
+                                        <span className="text-[6px] font-bold px-1 py-0.5 rounded uppercase tracking-wider bg-gray-100 text-gray-600">
                                             {item.activity_type === 'study' ? 'Konu' : item.activity_type === 'test' ? 'Test' : 'Tekrar'}
                                         </span>
                                         <span className="text-[9px] text-gray-400 font-medium whitespace-nowrap">
@@ -106,6 +112,26 @@ export default function Cizelge({ items, isSwitchingWeek, date, onToggleComplete
                                         {/* @ts-ignore */}
                                         {item.topic ? `${item.topic.subject} - ${item.topic.title}` : 'Ders'}
                                     </h4>
+
+                                    {/* Teacher & Resource Info */}
+                                    <div className="flex items-center gap-2 mt-0.5 overflow-hidden">
+                                        {item.teacher && (
+                                            <div className="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                                                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                                <span className="truncate">{item.teacher.name}</span>
+                                            </div>
+                                        )}
+                                        {item.resource && (
+                                            <div className="flex items-center gap-1 text-[10px] text-gray-500 truncate">
+                                                <svg className="w-3 h-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                                </svg>
+                                                <span className="truncate">{item.resource.title}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0 ${item.is_completed ? 'bg-black text-white' : 'bg-gray-100 text-gray-300'}`}>

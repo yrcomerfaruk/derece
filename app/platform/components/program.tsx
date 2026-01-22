@@ -16,6 +16,14 @@ interface ProgramItem {
         title: string;
         subject: string;
     };
+    teacher?: {
+        id: string;
+        name: string;
+    };
+    resource?: {
+        id: string;
+        title: string;
+    };
     activity_type: string;
     duration_minutes: number;
     is_completed: boolean;
@@ -141,7 +149,9 @@ export default function ProgramPage() {
                 .from('program_items')
                 .select(`
                     id, day_index, slot_index, activity_type, duration_minutes, is_completed, session_date,
-                    topic:topics (id, subject, title)
+                    topic:topics (id, subject, title),
+                    teacher:teachers(id, name),
+                    resource:resources(id, title)
                 `)
                 .eq('program_id', currentProgramId);
 
@@ -190,29 +200,7 @@ export default function ProgramPage() {
         fetchProgram();
     }, []);
 
-    // Auto-refresh at midnight
-    useEffect(() => {
-        const checkMidnight = () => {
-            const now = new Date();
-            const currentDay = now.getDay();
-            const expectedIndex = currentDay === 0 ? 6 : currentDay - 1;
 
-            if (selectedIndex !== expectedIndex) {
-                setSelectedIndex(expectedIndex);
-                setCurrentDate(new Date());
-                fetchProgram(new Date(), false);
-
-                // Clear chat messages for new day
-                setChatMessages([{
-                    role: 'assistant',
-                    content: "Merhaba, Derece AI Program Asistanı'nım. Programında yapmak istediğin değişiklikleri bana iletebilirsin."
-                }]);
-            }
-        };
-
-        const interval = setInterval(checkMidnight, 60000);
-        return () => clearInterval(interval);
-    }, [selectedIndex]);
 
 
     // Handlers extracted for cleaner passing to Baslik/Cizelge
@@ -321,10 +309,11 @@ export default function ProgramPage() {
 
     const daySchedule = schedule[selectedIndex];
 
+
     return (
-        <div className="h-full bg-white relative overflow-hidden">
-            {/* SCHEDULE VIEW (Full Height) */}
-            <div className={`h-full flex flex-col bg-white overflow-hidden`}>
+        <div className="h-full bg-white relative overflow-hidden flex">
+            {/* SCHEDULE VIEW (Flexible Width) */}
+            <div className="flex-1 h-full flex flex-col bg-white overflow-hidden relative">
 
                 {/* Header Component */}
                 <Baslik
@@ -345,19 +334,37 @@ export default function ProgramPage() {
                     date={daySchedule?.date}
                     onToggleComplete={handleToggleComplete}
                 />
+
+                {/* PROGRAM ASSISTANT (POPUP - Mobile Only) */}
+                <div className="lg:hidden">
+                    <ProgramAssistant
+                        isOpen={isChatOpen}
+                        onToggle={() => setIsChatOpen(prev => !prev)}
+                        messages={chatMessages}
+                        input={chatInput}
+                        setInput={setChatInput}
+                        onSend={handleChatSend}
+                        isLoading={isChatLoading}
+                        onClose={() => setIsChatOpen(false)}
+                        mode="popup"
+                    />
+                </div>
             </div>
 
-            {/* PROGRAM ASSISTANT (POPUP) */}
-            <ProgramAssistant
-                isOpen={isChatOpen}
-                onToggle={() => setIsChatOpen(prev => !prev)}
-                messages={chatMessages}
-                input={chatInput}
-                setInput={setChatInput}
-                onSend={handleChatSend}
-                isLoading={isChatLoading}
-                onClose={() => setIsChatOpen(false)}
-            />
+            {/* PROGRAM ASSISTANT (SIDEBAR - Desktop Only) */}
+            <div className="hidden lg:flex w-[350px] h-full flex-col z-20 shadow-none border-0">
+                <ProgramAssistant
+                    isOpen={true} // Always open in sidebar mode
+                    onToggle={() => { }}
+                    messages={chatMessages}
+                    input={chatInput}
+                    setInput={setChatInput}
+                    onSend={handleChatSend}
+                    isLoading={isChatLoading}
+                    onClose={() => { }}
+                    mode="sidebar"
+                />
+            </div>
 
             {/* TOAST MESSAGE */}
             {
